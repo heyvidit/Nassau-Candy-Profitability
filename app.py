@@ -99,7 +99,7 @@ st.sidebar.markdown("""
     <style>
     /* Decrease the height of the Streamlit date picker */
     div[data-baseweb="date-picker"] > div {
-        min-height: 50px !important;  /* Adjust this value to your preference */
+        min-height: 40px !important;  /* Adjust this value to your preference */
     }
     </style>
 """, unsafe_allow_html=True)
