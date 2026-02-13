@@ -17,6 +17,7 @@ st.set_page_config(page_title="Nassau Candy | Profit Intelligence System", layou
 def load_data():
     df = pd.read_csv("Nassau Candy Distributor (1).csv")
     df = df[(df["Sales"] > 0) & (df["Units"] > 0)]
+    df.dropna(subset=["Sales", "Units", "Gross Profit", "Cost"], inplace=True)
     df["Order Date"] = pd.to_datetime(df["Order Date"], errors="coerce")
     df["Gross Margin %"] = df["Gross Profit"] / df["Sales"]
     df["Profit per Unit"] = df["Gross Profit"] / df["Units"]
@@ -154,10 +155,22 @@ def pareto_page():
     pareto_rev["Cumulative Revenue %"] = pareto_rev["Total_Sales"].cumsum() / pareto_rev["Total_Sales"].sum()
 
     st.subheader("Profit Concentration")
-    st.line_chart(pareto["Cumulative Profit %"])
+    fig, ax = plt.subplots(figsize=(10,4))
+    ax.plot(pareto["Cumulative Profit %"], color="#2ca02c", linewidth=2)
+    ax.axhline(0.8, color='red', linestyle='--', label='80% Threshold')
+    ax.set_ylabel("Cumulative Profit %")
+    ax.set_xlabel("Products Sorted by Profit")
+    ax.legend()
+    st.pyplot(fig)
 
     st.subheader("Revenue Concentration")
-    st.line_chart(pareto_rev["Cumulative Revenue %"])
+    fig, ax = plt.subplots(figsize=(10,4))
+    ax.plot(pareto_rev["Cumulative Revenue %"], color="#1f77b4", linewidth=2)
+    ax.axhline(0.8, color='red', linestyle='--', label='80% Threshold')
+    ax.set_ylabel("Cumulative Revenue %")
+    ax.set_xlabel("Products Sorted by Revenue")
+    ax.legend()
+    st.pyplot(fig)
 
 # -------------------------------------------------
 # MARGIN VOLATILITY
@@ -168,11 +181,12 @@ def margin_volatility():
     st.line_chart(monthly)
 
 # -------------------------------------------------
-# FACTORY PERFORMANCE
+# DIVISION & FACTORY PERFORMANCE
 # -------------------------------------------------
 def division_factory_page():
     st.title("Division & Factory Performance")
 
+    # Factory Performance
     factory_perf = (
         product_perf.groupby("Factory", as_index=False)
         .agg(
@@ -181,8 +195,85 @@ def division_factory_page():
             Avg_Margin=("Avg_Margin", "mean")
         )
     )
-
+    st.subheader("Factory Performance")
     st.dataframe(factory_perf)
+
+    # Division Performance
+    division_perf = (
+        product_perf.groupby("Division", as_index=False)
+        .agg(
+            Revenue=("Total_Sales", "sum"),
+            Profit=("Total_Profit", "sum"),
+            Avg_Margin=("Avg_Margin", "mean")
+        )
+    )
+    st.subheader("Division Performance")
+    fig, ax = plt.subplots(figsize=(10,5))
+    division_perf.plot(
+        x="Division",
+        y=["Revenue", "Profit"],
+        kind="bar",
+        ax=ax,
+        color=["#1f77b4", "#2ca02c"]
+    )
+    ax.set_ylabel("USD")
+    ax.set_title("Revenue vs Profit by Division")
+    ax.legend()
+    st.pyplot(fig)
+    st.dataframe(division_perf)
+
+# -------------------------------------------------
+# COST VS MARGIN DIAGNOSTICS
+# -------------------------------------------------
+def cost_margin_page():
+    st.title("Cost vs Margin Diagnostics")
+
+    fig, ax = plt.subplots(figsize=(10,6))
+    sns.scatterplot(
+        data=filtered_df,
+        x="Cost",
+        y="Gross Margin %",
+        hue=filtered_df["Product Name"].map(lambda x: product_perf.loc[product_perf['Product Name']==x, 'Strategic Category'].values[0]),
+        palette="Set2",
+        ax=ax,
+        s=100,
+        alpha=0.7
+    )
+    ax.set_ylabel("Gross Margin %")
+    ax.set_xlabel("Cost")
+    ax.set_title("Cost vs Margin by Product Strategic Category")
+    ax.legend(title="Strategic Category")
+    st.pyplot(fig)
+
+# -------------------------------------------------
+# PRODUCT PORTFOLIO ANALYSIS (with color-coded table & download)
+# -------------------------------------------------
+def product_portfolio_analysis():
+    st.title("Product Portfolio Analysis")
+
+    # Color-coding Strategic Category
+    def highlight_category(row):
+        color_map = {
+            "Strategic Core": "background-color: #2ca02c; color:white",
+            "Volume Illusion": "background-color: #1f77b4; color:white",
+            "Margin Risk": "background-color: #ff7f0e; color:white",
+            "Rationalization Candidate": "background-color: #d62728; color:white"
+        }
+        return [color_map.get(row["Strategic Category"], "")]*len(row)
+
+    styled_df = product_perf.style.apply(highlight_category, axis=1)
+    st.dataframe(styled_df)
+
+    # Download button
+    csv = product_perf.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="Download Filtered Data as CSV",
+        data=csv,
+        file_name="filtered_product_performance.csv",
+        mime="text/csv"
+    )
+
+    margin_volatility()
 
 # -------------------------------------------------
 # RECOMMENDATIONS
@@ -206,18 +297,21 @@ def recommendation_page():
     - Volume Illusion products require margin improvement strategies.
     """)
 
+    if not low_margin.empty:
+        st.subheader("Low-Margin Products (<15%)")
+        st.dataframe(low_margin[["Product Name", "Division", "Factory", "Avg_Margin", "Total_Profit", "Strategic Category"]])
+
 # -------------------------------------------------
 # PAGE ROUTING
 # -------------------------------------------------
 if page == "Executive Intelligence":
     executive_page()
 elif page == "Product Portfolio Analysis":
-    st.dataframe(product_perf)
-    margin_volatility()
+    product_portfolio_analysis()
 elif page == "Division & Factory Performance":
     division_factory_page()
 elif page == "Cost & Margin Diagnostics":
-    st.scatter_chart(filtered_df[["Cost", "Gross Margin %"]])
+    cost_margin_page()
 elif page == "Profit Concentration Analysis":
     pareto_page()
 elif page == "Strategic Recommendations":
