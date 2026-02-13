@@ -4,7 +4,11 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="Nassau Candy | Profit Intelligence System", layout="wide", page_icon="🍬")
+st.set_page_config(
+    page_title="Nassau Candy | Profit Intelligence System",
+    layout="wide",
+    page_icon="🍬"
+)
 
 # ---------------------------
 # LOAD DATA
@@ -43,30 +47,28 @@ factory_map = {
     "Wonka Gum": "Secret Factory",
     "Kazookles": "The Other Factory"
 }
-
 df["Factory"] = df["Product Name"].map(factory_map)
+
+# Factory coordinates
+factory_coords = {
+    "Lot's O' Nuts": [32.881893, -111.768036],
+    "Wicked Choccy's": [32.076176, -81.088371],
+    "Sugar Shack": [48.11914, -96.18115],
+    "Secret Factory": [41.446333, -90.565487],
+    "The Other Factory": [35.1175, -89.971107]
+}
 
 # ---------------------------
 # SIDEBAR FILTERS
 # ---------------------------
 st.sidebar.header("Filters")
-
 division_filter = st.sidebar.multiselect(
-    "Select Division",
-    options=df["Division"].unique(),
-    default=df["Division"].unique()
+    "Select Division", options=df["Division"].unique(), default=df["Division"].unique()
 )
-
 date_range = st.sidebar.date_input(
-    "Order Date Range",
-    [df["Order Date"].min(), df["Order Date"].max()]
+    "Order Date Range", [df["Order Date"].min(), df["Order Date"].max()]
 )
-
-margin_threshold = st.sidebar.slider(
-    "Minimum Gross Margin (%)",
-    0, 100, 0
-)
-
+margin_threshold = st.sidebar.slider("Minimum Gross Margin (%)", 0, 100, 0)
 page = st.sidebar.radio(
     "Select Page",
     [
@@ -75,6 +77,7 @@ page = st.sidebar.radio(
         "Division & Factory Performance",
         "Cost & Margin Diagnostics",
         "Profit Concentration Analysis",
+        "Factory-Product Map",
         "Strategic Recommendations"
     ]
 )
@@ -100,10 +103,9 @@ product_perf = (
 )
 product_perf["Profit per Unit"] = product_perf["Total_Profit"] / product_perf["Total_Units"]
 
-# Strategic Classification using vectorized np.select
+# Strategic Classification
 profit_median = product_perf["Total_Profit"].median()
 margin_median = product_perf["Avg_Margin"].median()
-
 conditions = [
     (product_perf["Total_Profit"] >= profit_median) & (product_perf["Avg_Margin"] >= margin_median),
     (product_perf["Total_Profit"] >= profit_median) & (product_perf["Avg_Margin"] < margin_median),
@@ -112,11 +114,10 @@ conditions = [
 choices = ["Strategic Core", "Volume Illusion", "Rationalization Candidate"]
 product_perf["Strategic Category"] = np.select(conditions, choices, default="Margin Risk")
 
-# Merge strategic category for easy plotting
+# Merge strategic category and Total_Profit into filtered_df for plotting
 filtered_df = filtered_df.merge(
-    product_perf[["Product Name", "Strategic Category"]],
-    on="Product Name",
-    how="left"
+    product_perf[["Product Name", "Strategic Category", "Total_Profit", "Units"]],
+    on="Product Name", how="left"
 )
 
 # ---------------------------
@@ -124,60 +125,50 @@ filtered_df = filtered_df.merge(
 # ---------------------------
 def executive_page():
     st.title("Executive Profit Intelligence")
-
     total_revenue = filtered_df["Sales"].sum()
     total_profit = filtered_df["Gross Profit"].sum()
     avg_margin = filtered_df["Gross Margin %"].mean()
-
-    category_summary = product_perf.groupby("Strategic Category").agg(
-        Revenue=("Total_Sales", "sum"),
-        Profit=("Total_Profit", "sum"),
-        Count=("Product Name", "nunique")
-    ).reset_index()
+    top5_profit_share = product_perf.sort_values("Total_Profit", ascending=False).head(5)["Total_Profit"].sum()/total_profit*100
 
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Total Revenue", f"${total_revenue:,.0f}")
     col2.metric("Total Profit", f"${total_profit:,.0f}")
     col3.metric("Avg Margin", f"{avg_margin:.2f}%")
-    top5_profit_share = (
-        product_perf.sort_values("Total_Profit", ascending=False)
-        .head(5)["Total_Profit"].sum() / total_profit * 100
-    )
     col4.metric("Top 5 Profit Share", f"{top5_profit_share:.1f}%")
 
-    st.subheader("Strategic Category Overview")
-    fig = px.bar(
-        category_summary,
-        x="Strategic Category",
-        y="Profit",
-        color="Strategic Category",
-        text="Profit",
-        color_discrete_map={
-            "Strategic Core":"#2ca02c",
-            "Volume Illusion":"#1f77b4",
-            "Margin Risk":"#ff7f0e",
-            "Rationalization Candidate":"#d62728"
-        }
-    )
-    fig.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
-                      xaxis_title="", yaxis_title="Profit USD")
+    st.subheader("Strategic Category Profit Overview")
+    category_summary = product_perf.groupby("Strategic Category").agg(
+        Profit=("Total_Profit","sum")
+    ).reset_index()
+    fig = px.bar(category_summary, x="Strategic Category", y="Profit", text="Profit",
+                 color="Strategic Category",
+                 color_discrete_map={
+                     "Strategic Core":"#2ca02c",
+                     "Volume Illusion":"#1f77b4",
+                     "Margin Risk":"#ff7f0e",
+                     "Rationalization Candidate":"#d62728"
+                 })
+    fig.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
     st.plotly_chart(fig, use_container_width=True)
 
 # ---------------------------
-# PRODUCT PORTFOLIO PAGE
+# PRODUCT PORTFOLIO ANALYSIS
 # ---------------------------
 def product_portfolio_analysis():
     st.title("Product Portfolio Analysis")
-    # Color-coded table
     color_map = {
         "Strategic Core": "#2ca02c",
         "Volume Illusion": "#1f77b4",
         "Margin Risk": "#ff7f0e",
         "Rationalization Candidate": "#d62728"
     }
-    styled_df = product_perf.style.apply(lambda x: [f"background-color: {color_map.get(x['Strategic Category'],'')}; color:white"]*len(x), axis=1)
+    styled_df = product_perf.style.apply(
+        lambda x: [f"background-color: {color_map.get(x['Strategic Category'],'')}; color:white"]*len(x),
+        axis=1
+    )
     st.dataframe(styled_df)
-    # Download
+
+    # Download CSV
     csv = product_perf.to_csv(index=False).encode('utf-8')
     st.download_button("Download CSV", csv, "filtered_product_performance.csv", "text/csv")
 
@@ -195,13 +186,11 @@ def product_portfolio_analysis():
 def division_factory_page():
     st.title("Division & Factory Performance")
 
-    # Division
     division_perf = product_perf.groupby("Division").agg(
         Revenue=("Total_Sales","sum"),
         Profit=("Total_Profit","sum"),
         Avg_Margin=("Avg_Margin","mean")
     ).reset_index()
-
     fig = go.Figure()
     fig.add_trace(go.Bar(x=division_perf['Division'], y=division_perf['Revenue'], name="Revenue", marker_color="#1f77b4"))
     fig.add_trace(go.Bar(x=division_perf['Division'], y=division_perf['Profit'], name="Profit", marker_color="#2ca02c"))
@@ -209,7 +198,6 @@ def division_factory_page():
     st.plotly_chart(fig, use_container_width=True)
     st.dataframe(division_perf)
 
-    # Factory
     factory_perf = product_perf.groupby("Factory").agg(
         Revenue=("Total_Sales","sum"),
         Profit=("Total_Profit","sum"),
@@ -223,22 +211,24 @@ def division_factory_page():
 # ---------------------------
 def cost_margin_page():
     st.title("Cost vs Margin Diagnostics")
+    # Drop rows with NaNs in required columns
+    plot_df = filtered_df.dropna(subset=["Cost","Gross Margin %","Units","Total_Profit","Strategic Category"])
     fig = px.scatter(
-        filtered_df,
+        plot_df,
         x="Cost",
         y="Gross Margin %",
         color="Strategic Category",
-        hover_data=["Product Name", "Division", "Factory", "Total_Profit"],
+        size="Units",
+        hover_data=["Product Name","Division","Factory","Total_Profit"],
+        opacity=0.7,
         color_discrete_map={
             "Strategic Core":"#2ca02c",
             "Volume Illusion":"#1f77b4",
             "Margin Risk":"#ff7f0e",
             "Rationalization Candidate":"#d62728"
-        },
-        size="Units",
-        opacity=0.7
+        }
     )
-    fig.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', xaxis_title="Cost", yaxis_title="Gross Margin %")
+    fig.update_layout(xaxis_title="Cost", yaxis_title="Gross Margin %", plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
     st.plotly_chart(fig, use_container_width=True)
 
 # ---------------------------
@@ -247,15 +237,36 @@ def cost_margin_page():
 def pareto_page():
     st.title("Profit & Revenue Concentration")
     pareto = product_perf.sort_values("Total_Profit", ascending=False)
-    pareto["Cumulative Profit %"] = pareto["Total_Profit"].cumsum() / pareto["Total_Profit"].sum()*100
+    pareto["Cumulative Profit %"] = pareto["Total_Profit"].cumsum() / pareto["Total_Profit"].sum() * 100
     pareto_rev = product_perf.sort_values("Total_Sales", ascending=False)
-    pareto_rev["Cumulative Revenue %"] = pareto_rev["Total_Sales"].cumsum() / pareto_rev["Total_Sales"].sum()*100
+    pareto_rev["Cumulative Revenue %"] = pareto_rev["Total_Sales"].cumsum() / pareto_rev["Total_Sales"].sum() * 100
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(y=pareto["Cumulative Profit %"], mode='lines+markers', name="Cumulative Profit %", line=dict(color="#2ca02c")))
     fig.add_trace(go.Scatter(y=pareto_rev["Cumulative Revenue %"], mode='lines+markers', name="Cumulative Revenue %", line=dict(color="#1f77b4")))
     fig.add_hline(y=80, line_dash="dash", line_color="red")
     fig.update_layout(yaxis_title="Cumulative %", xaxis_title="Products Sorted by Profit/Revenue", plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
+    st.plotly_chart(fig, use_container_width=True)
+
+# ---------------------------
+# FACTORY-PRODUCT MAP
+# ---------------------------
+def factory_map_page():
+    st.title("Factory-Product Distribution Map")
+    map_data = []
+    for factory, coords in factory_coords.items():
+        products = product_perf[product_perf["Factory"]==factory]["Product Name"].unique()
+        map_data.append({
+            "Factory": factory,
+            "Latitude": coords[0],
+            "Longitude": coords[1],
+            "Products": ", ".join(products)
+        })
+    map_df = pd.DataFrame(map_data)
+    fig = px.scatter_geo(map_df, lat="Latitude", lon="Longitude", hover_name="Factory", hover_data=["Products"],
+                         scope="usa", size_max=20, size=[len(p.split(",")) for p in map_df["Products"]],
+                         color="Factory")
+    fig.update_layout(geo=dict(bgcolor='rgba(0,0,0,0)'), plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
     st.plotly_chart(fig, use_container_width=True)
 
 # ---------------------------
@@ -273,6 +284,7 @@ def recommendation_page():
     - Strategic Core products should be protected and prioritized.
     - Volume Illusion products require margin improvement strategies.
     """)
+
     if not low_margin.empty:
         st.subheader("Low-Margin Products (<15%)")
         st.dataframe(low_margin[["Product Name","Division","Factory","Avg_Margin","Total_Profit","Strategic Category"]])
@@ -290,5 +302,7 @@ elif page == "Cost & Margin Diagnostics":
     cost_margin_page()
 elif page == "Profit Concentration Analysis":
     pareto_page()
+elif page == "Factory-Product Map":
+    factory_map_page()
 elif page == "Strategic Recommendations":
     recommendation_page()
