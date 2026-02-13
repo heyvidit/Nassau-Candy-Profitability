@@ -91,8 +91,18 @@ division_filter = st.sidebar.multiselect(
     default=df["Division"].unique()
 )
 
-# Improved calendar alignment
+# Improved calendar alignment with smaller height
 st.sidebar.markdown("### 📅 Order Date Range", unsafe_allow_html=True)
+
+# Custom CSS to decrease date picker height
+st.sidebar.markdown("""
+    <style>
+    /* Decrease the height of the Streamlit date picker */
+    div[data-baseweb="date-picker"] > div {
+        min-height: 50px !important;  /* Adjust this value to your preference */
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 date_range = st.sidebar.date_input(
     label="Order Date Range",
