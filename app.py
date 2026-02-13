@@ -155,21 +155,29 @@ def pareto_page():
     pareto_rev["Cumulative Revenue %"] = pareto_rev["Total_Sales"].cumsum() / pareto_rev["Total_Sales"].sum()
 
     st.subheader("Profit Concentration")
-    fig, ax = plt.subplots(figsize=(10,4))
+    fig, ax = plt.subplots(figsize=(10,4), facecolor="none")
+    ax.set_facecolor("none")
     ax.plot(pareto["Cumulative Profit %"], color="#2ca02c", linewidth=2)
     ax.axhline(0.8, color='red', linestyle='--', label='80% Threshold')
-    ax.set_ylabel("Cumulative Profit %")
-    ax.set_xlabel("Products Sorted by Profit")
-    ax.legend()
+    ax.set_ylabel("Cumulative Profit %", color='white')
+    ax.set_xlabel("Products Sorted by Profit", color='white')
+    ax.set_title("Profit Concentration", color='white')
+    ax.tick_params(axis='x', colors='white')
+    ax.tick_params(axis='y', colors='white')
+    ax.legend(facecolor="#0E1117", edgecolor='white', labelcolor='white')
     st.pyplot(fig)
 
     st.subheader("Revenue Concentration")
-    fig, ax = plt.subplots(figsize=(10,4))
+    fig, ax = plt.subplots(figsize=(10,4), facecolor="none")
+    ax.set_facecolor("none")
     ax.plot(pareto_rev["Cumulative Revenue %"], color="#1f77b4", linewidth=2)
     ax.axhline(0.8, color='red', linestyle='--', label='80% Threshold')
-    ax.set_ylabel("Cumulative Revenue %")
-    ax.set_xlabel("Products Sorted by Revenue")
-    ax.legend()
+    ax.set_ylabel("Cumulative Revenue %", color='white')
+    ax.set_xlabel("Products Sorted by Revenue", color='white')
+    ax.set_title("Revenue Concentration", color='white')
+    ax.tick_params(axis='x', colors='white')
+    ax.tick_params(axis='y', colors='white')
+    ax.legend(facecolor="#0E1117", edgecolor='white', labelcolor='white')
     st.pyplot(fig)
 
 # -------------------------------------------------
@@ -186,7 +194,6 @@ def margin_volatility():
 def division_factory_page():
     st.title("Division & Factory Performance")
 
-    # Factory Performance
     factory_perf = (
         product_perf.groupby("Factory", as_index=False)
         .agg(
@@ -198,7 +205,6 @@ def division_factory_page():
     st.subheader("Factory Performance")
     st.dataframe(factory_perf)
 
-    # Division Performance
     division_perf = (
         product_perf.groupby("Division", as_index=False)
         .agg(
@@ -208,7 +214,8 @@ def division_factory_page():
         )
     )
     st.subheader("Division Performance")
-    fig, ax = plt.subplots(figsize=(10,5))
+    fig, ax = plt.subplots(figsize=(10,5), facecolor="none")
+    ax.set_facecolor("none")
     division_perf.plot(
         x="Division",
         y=["Revenue", "Profit"],
@@ -216,9 +223,11 @@ def division_factory_page():
         ax=ax,
         color=["#1f77b4", "#2ca02c"]
     )
-    ax.set_ylabel("USD")
-    ax.set_title("Revenue vs Profit by Division")
-    ax.legend()
+    ax.set_ylabel("USD", color='white')
+    ax.set_title("Revenue vs Profit by Division", color='white')
+    ax.tick_params(axis='x', colors='white')
+    ax.tick_params(axis='y', colors='white')
+    ax.legend(facecolor="#0E1117", edgecolor='white', labelcolor='white')
     st.pyplot(fig)
     st.dataframe(division_perf)
 
@@ -228,7 +237,8 @@ def division_factory_page():
 def cost_margin_page():
     st.title("Cost vs Margin Diagnostics")
 
-    fig, ax = plt.subplots(figsize=(10,6))
+    fig, ax = plt.subplots(figsize=(10,6), facecolor="none")
+    ax.set_facecolor("none")
     sns.scatterplot(
         data=filtered_df,
         x="Cost",
@@ -239,10 +249,12 @@ def cost_margin_page():
         s=100,
         alpha=0.7
     )
-    ax.set_ylabel("Gross Margin %")
-    ax.set_xlabel("Cost")
-    ax.set_title("Cost vs Margin by Product Strategic Category")
-    ax.legend(title="Strategic Category")
+    ax.set_ylabel("Gross Margin %", color='white')
+    ax.set_xlabel("Cost", color='white')
+    ax.set_title("Cost vs Margin by Product Strategic Category", color='white')
+    ax.tick_params(axis='x', colors='white')
+    ax.tick_params(axis='y', colors='white')
+    ax.legend(title="Strategic Category", facecolor="#0E1117", edgecolor='white', labelcolor='white')
     st.pyplot(fig)
 
 # -------------------------------------------------
