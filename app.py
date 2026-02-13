@@ -91,10 +91,11 @@ division_filter = st.sidebar.multiselect(
     default=df["Division"].unique()
 )
 
-st.sidebar.markdown("### 📅 Order Date Range")
+# Improved calendar alignment
+st.sidebar.markdown("### 📅 Order Date Range", unsafe_allow_html=True)
 
 date_range = st.sidebar.date_input(
-    label="",
+    label="Order Date Range",
     value=(df["Order Date"].min(), df["Order Date"].max())
 )
 
