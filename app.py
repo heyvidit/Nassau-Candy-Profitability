@@ -47,6 +47,29 @@ def load_data():
 df = load_data()
 
 # ------------------------------------------------
+# FACTORY MAPPING
+# ------------------------------------------------
+factory_map = {
+    "Wonka Bar - Nutty Crunch Surprise": "Lot's O' Nuts",
+    "Wonka Bar - Fudge Mallows": "Lot's O' Nuts",
+    "Wonka Bar -Scrumdiddlyumptious": "Lot's O' Nuts",
+    "Wonka Bar - Milk Chocolate": "Wicked Choccy's",
+    "Wonka Bar - Triple Dazzle Caramel": "Wicked Choccy's",
+    "Laffy Taffy": "Sugar Shack",
+    "SweeTARTS": "Sugar Shack",
+    "Nerds": "Sugar Shack",
+    "Fun Dip": "Sugar Shack",
+    "Fizzy Lifting Drinks": "Sugar Shack",
+    "Everlasting Gobstopper": "Secret Factory",
+    "Hair Toffee": "The Other Factory",
+    "Lickable Wallpaper": "Secret Factory",
+    "Wonka Gum": "Secret Factory",
+    "Kazookles": "The Other Factory"
+}
+
+df["Factory"] = df["Product Name"].map(factory_map)
+
+# ------------------------------------------------
 # SIDEBAR
 # ------------------------------------------------
 st.sidebar.title("🔎 Filters")
@@ -111,7 +134,7 @@ product_perf = (
 product_perf["Profit per Unit"] = product_perf["Total_Profit"] / product_perf["Total_Units"]
 
 # ------------------------------------------------
-# EXECUTIVE PAGE (FIXED BALANCE)
+# EXECUTIVE PAGE (BALANCED LAYOUT)
 # ------------------------------------------------
 def executive_page():
     st.title("Executive Profit Intelligence")
@@ -135,7 +158,7 @@ def executive_page():
 
     st.markdown("---")
 
-    # Balanced Layout (removes empty space)
+    # Balanced Layout with plots to remove empty space
     left, right = st.columns([2, 1])
 
     with left:
@@ -171,7 +194,7 @@ def executive_page():
         st.plotly_chart(fig2, use_container_width=True)
 
 # ------------------------------------------------
-# OTHER PAGES (UNCHANGED LOGIC)
+# PRODUCT PORTFOLIO ANALYSIS PAGE
 # ------------------------------------------------
 def product_portfolio_analysis():
     st.title("Product Portfolio Analysis")
@@ -188,7 +211,9 @@ def product_portfolio_analysis():
 
     st.plotly_chart(fig, use_container_width=True)
 
-
+# ------------------------------------------------
+# DIVISION & FACTORY PERFORMANCE PAGE
+# ------------------------------------------------
 def division_factory_page():
     st.title("Division & Factory Performance")
 
@@ -207,7 +232,9 @@ def division_factory_page():
 
     st.plotly_chart(fig, use_container_width=True)
 
-
+# ------------------------------------------------
+# COST & MARGIN DIAGNOSTICS PAGE
+# ------------------------------------------------
 def cost_margin_page():
     st.title("Cost & Margin Diagnostics")
 
@@ -224,7 +251,9 @@ def cost_margin_page():
 
     st.plotly_chart(fig, use_container_width=True)
 
-
+# ------------------------------------------------
+# PROFIT CONCENTRATION ANALYSIS PAGE
+# ------------------------------------------------
 def profit_concentration_page():
     st.title("Profit Concentration Analysis")
 
@@ -243,12 +272,16 @@ def profit_concentration_page():
 
     st.plotly_chart(fig, use_container_width=True)
 
-
+# ------------------------------------------------
+# FACTORY-PRODUCT MAP PAGE (Placeholder)
+# ------------------------------------------------
 def factory_map_page():
     st.title("Factory-Product Map")
-    st.info("Factory map retained from previous implementation.")
+    st.info("Factory map visualization to be implemented.")
 
-
+# ------------------------------------------------
+# STRATEGIC RECOMMENDATIONS PAGE
+# ------------------------------------------------
 def recommendation_page():
     st.title("Strategic Recommendations")
 
@@ -257,9 +290,8 @@ def recommendation_page():
     st.write(f"{len(low_margin)} products operate below 15% margin.")
     st.dataframe(low_margin)
 
-
 # ------------------------------------------------
-# ROUTING
+# PAGE ROUTING
 # ------------------------------------------------
 if page == "Executive Intelligence":
     executive_page()
