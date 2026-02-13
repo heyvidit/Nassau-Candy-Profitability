@@ -70,6 +70,17 @@ factory_map = {
 df["Factory"] = df["Product Name"].map(factory_map)
 
 # ------------------------------------------------
+# FACTORY COORDINATES
+# ------------------------------------------------
+factory_coords = {
+    "Lot's O' Nuts": [32.881893, -111.768036],
+    "Wicked Choccy's": [32.076176, -81.088371],
+    "Sugar Shack": [48.11914, -96.18115],
+    "Secret Factory": [41.446333, -90.565487],
+    "The Other Factory": [35.1175, -89.971107]
+}
+
+# ------------------------------------------------
 # SIDEBAR
 # ------------------------------------------------
 st.sidebar.title("🔎 Filters")
@@ -273,11 +284,37 @@ def profit_concentration_page():
     st.plotly_chart(fig, use_container_width=True)
 
 # ------------------------------------------------
-# FACTORY-PRODUCT MAP PAGE (Placeholder)
+# FACTORY-PRODUCT MAP PAGE
 # ------------------------------------------------
 def factory_map_page():
     st.title("Factory-Product Map")
-    st.info("Factory map visualization to be implemented.")
+
+    map_data = []
+    for factory, coords in factory_coords.items():
+        products = product_perf[product_perf["Factory"] == factory]["Product Name"].unique()
+        map_data.append({
+            "Factory": factory,
+            "Latitude": coords[0],
+            "Longitude": coords[1],
+            "Products": ", ".join(products),
+            "Product_Count": len(products)
+        })
+
+    map_df = pd.DataFrame(map_data)
+
+    fig = px.scatter_geo(
+        map_df,
+        lat="Latitude",
+        lon="Longitude",
+        hover_name="Factory",
+        hover_data=["Products", "Product_Count"],
+        size="Product_Count",
+        scope="usa",
+        color="Factory",
+        template="plotly_dark"
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
 
 # ------------------------------------------------
 # STRATEGIC RECOMMENDATIONS PAGE
