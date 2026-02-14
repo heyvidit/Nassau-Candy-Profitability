@@ -239,7 +239,7 @@ def add_footer():
         footer_html = f"""
         <div class='footer' style='display:flex; justify-content:space-between; align-items:center; padding:20px 40px; background-color:#1f1f1f; color:#ffffff; font-size:13px; font-family:Arial, sans-serif;'>
             <div style='display:flex; align-items:center; gap:10px;'>
-                <img src='data:image/png;base64,{encoded_logo}' alt='Unified Logo' style='height:25px;'>
+                <img src='data:image/png;base64,{encoded_logo}' alt='Unified Logo' style='height:25px; width:200px'>
                 <span>Mentored by <a href='https://www.linkedin.com/in/saiprasad-kagne/' target='_blank' style='color:#0A66C2; text-decoration:none;'>Sai Prasad Kagne</a></span>
             </div>
             <div>
