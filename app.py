@@ -30,7 +30,7 @@ st.markdown("""
 .footer {
     font-size: 14px;
     text-align: center;
-    padding: 3rem 0;
+    padding: 7rem 0;
     color: #ffffff;
 }
 .footer img {
