@@ -230,16 +230,16 @@ def recommendation_page():
     st.dataframe(low_margin)
 
 # ------------------------------------------------
-# FOOTER FUNCTION (PROFESSIONAL)
+# FOOTER FUNCTION (PROFESSIONAL, UPDATED COLOR)
 # ------------------------------------------------
 def add_footer():
     try:
         with open("unified logo.png", "rb") as f:
             encoded_logo = base64.b64encode(f.read()).decode()
         footer_html = f"""
-        <div class='footer' style='display:flex; justify-content:space-between; align-items:center; padding:20px 40px; background-color:#1f1f1f; color:#ffffff; font-size:13px; font-family:Arial, sans-serif;'>
+        <div class='footer' style='display:flex; justify-content:space-between; align-items:center; padding:20px 40px; background-color:#0E1117; color:#ffffff; font-size:13px; font-family:Arial, sans-serif;'>
             <div style='display:flex; align-items:center; gap:10px;'>
-                <img src='data:image/png;base64,{encoded_logo}' alt='Unified Logo' style='height:32px; width:200px'>
+                <img src='data:image/png;base64,{encoded_logo}' alt='Unified Logo' style='height:50px; width:auto'>
                 <span>Mentored by <a href='https://www.linkedin.com/in/saiprasad-kagne/' target='_blank' style='color:#0A66C2; text-decoration:none;'>Sai Prasad Kagne</a></span>
             </div>
             <div>
@@ -252,8 +252,8 @@ def add_footer():
         """
         st.markdown(footer_html, unsafe_allow_html=True)
     except:
-        st.markdown("""
-        <div class='footer' style='display:flex; justify-content:center; align-items:center; gap:15px; flex-wrap:wrap; padding:15px 20px; background-color:#1f1f1f; color:#ffffff; font-size:13px; font-family:Arial, sans-serif;'>
+        st.markdown(f"""
+        <div class='footer' style='display:flex; justify-content:center; align-items:center; gap:15px; flex-wrap:wrap; padding:15px 20px; background-color:#0E1117; color:#ffffff; font-size:13px; font-family:Arial, sans-serif;'>
             <span>Mentored by <a href='https://www.linkedin.com/in/saiprasad-kagne/' target='_blank' style='color:#0A66C2; text-decoration:none;'>Sai Prasad Kagne</a></span>
             <span>| Created by <a href='https://www.linkedin.com/in/vidit-kapoor-5062b02a6' target='_blank' style='color:#0A66C2; text-decoration:none;'>Vidit Kapoor</a></span>
             <span>| Version 1.0 | Last updated: Feb 2026</span>
