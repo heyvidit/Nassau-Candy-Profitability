@@ -10,7 +10,7 @@ from PIL import Image
 # ------------------------------------------------
 st.set_page_config(
     page_title="Profit Intelligence Dashboard",
-    page_icon="logo.png",
+    page_icon="favicon.png",
     layout="wide",
     initial_sidebar_state="expanded"
 )
