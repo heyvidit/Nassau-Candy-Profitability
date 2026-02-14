@@ -30,17 +30,13 @@ st.markdown("""
 .footer {
     font-size: 14px;
     text-align: center;
-    padding: 7rem 0;
     color: #ffffff;
+    padding: 7rem 0;  /* Added padding for professional spacing */
 }
 .footer img {
     height: 30px;
     vertical-align: middle;
     margin-right: 8px;
-}
-.footer a {
-    color: #ffffff;
-    text-decoration: underline;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -112,15 +108,18 @@ division_filter = st.sidebar.multiselect(
     options=df["Division"].unique(),
     default=df["Division"].unique()
 )
+
 st.sidebar.markdown("### 📅 Order Date Range")
 date_range = st.sidebar.date_input(
     "Order Date Range",
     value=(df["Order Date"].min(), df["Order Date"].max())
 )
+
 margin_threshold = st.sidebar.slider(
     "Minimum Gross Margin (%)",
     0, 100, 0
 )
+
 page = st.sidebar.radio(
     "Select Page",
     [
@@ -166,10 +165,12 @@ product_perf["Profit per Unit"] = product_perf["Total_Profit"] / product_perf["T
 # ------------------------------------------------
 def executive_page():
     st.markdown("<div style='padding-top:20px'></div>", unsafe_allow_html=True)
+
     if logo:
         col1, col2, col3 = st.columns([1,2,1])
         with col2:
             st.image(logo, width=500)
+
     st.markdown("## Executive Profit Intelligence Dashboard")
     st.markdown("---")
 
@@ -240,27 +241,41 @@ def recommendation_page():
     st.dataframe(low_margin)
 
 # ------------------------------------------------
-# FOOTER FUNCTION
+# FOOTER FUNCTION (Stylish)
 # ------------------------------------------------
 def add_footer():
     try:
         with open("unified logo.png", "rb") as f:
             encoded = base64.b64encode(f.read()).decode()
         footer_html = f"""
-        <div class='footer'>
+        <div class='footer' style='display:flex; justify-content:center; align-items:center; gap:15px; flex-wrap:wrap;'>
             <img src='data:image/png;base64,{encoded}' alt='Unified Logo'>
-            Project mentored by 
-            <a href='https://www.linkedin.com/in/saiprasad-kagne/' target='_blank'>Sai Prasad Kagne</a> | Created by 
-            <a href='https://www.linkedin.com/in/vidit-kapoor-5062b02a6' target='_blank'>Vidit Kapoor</a>
+            <span style='color:#ffffff; font-weight:600;'>Project mentored by</span>
+            <a href='https://www.linkedin.com/in/saiprasad-kagne/' target='_blank'
+               style='background-color:#0A66C2; color:white; padding:5px 12px; border-radius:12px; text-decoration:none; font-weight:600;'>
+               Sai Prasad Kagne
+            </a>
+            <span style='color:#ffffff; font-weight:600;'>| Created by</span>
+            <a href='https://www.linkedin.com/in/vidit-kapoor-5062b02a6' target='_blank'
+               style='background-color:#0A66C2; color:white; padding:5px 12px; border-radius:12px; text-decoration:none; font-weight:600;'>
+               Vidit Kapoor
+            </a>
         </div>
         """
         st.markdown(footer_html, unsafe_allow_html=True)
     except:
         st.markdown("""
-        <div class='footer'>
-            Project mentored by 
-            <a href='https://www.linkedin.com/in/saiprasad-kagne/' target='_blank'>Sai Prasad Kagne</a> | Created by 
-            <a href='https://www.linkedin.com/in/vidit-kapoor-5062b02a6' target='_blank'>Vidit Kapoor</a>
+        <div class='footer' style='display:flex; justify-content:center; align-items:center; gap:15px; flex-wrap:wrap;'>
+            <span style='color:#ffffff; font-weight:600;'>Project mentored by</span>
+            <a href='https://www.linkedin.com/in/saiprasad-kagne/' target='_blank'
+               style='background-color:#0A66C2; color:white; padding:5px 12px; border-radius:12px; text-decoration:none; font-weight:600;'>
+               Sai Prasad Kagne
+            </a>
+            <span style='color:#ffffff; font-weight:600;'>| Created by</span>
+            <a href='https://www.linkedin.com/in/vidit-kapoor-5062b02a6' target='_blank'
+               style='background-color:#0A66C2; color:white; padding:5px 12px; border-radius:12px; text-decoration:none; font-weight:600;'>
+               Vidit Kapoor
+            </a>
         </div>
         """, unsafe_allow_html=True)
 
