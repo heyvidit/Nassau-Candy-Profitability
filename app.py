@@ -27,17 +27,6 @@ st.markdown("""
     padding-right: 3rem;
     max-width: 1400px;
 }
-.footer {
-    font-size: 14px;
-    text-align: center;
-    color: #ffffff;
-    padding: 7rem 0;  /* Added padding for professional spacing */
-}
-.footer img {
-    height: 30px;
-    vertical-align: middle;
-    margin-right: 8px;
-}
 </style>
 """, unsafe_allow_html=True)
 
@@ -194,7 +183,7 @@ def executive_page():
     with left:
         top_products = product_perf.sort_values("Total_Profit", ascending=False).head(10)
         fig = px.bar(top_products, x="Total_Profit", y="Product Name", orientation="h",
-                     title="Top 10 Products by Profit", template="plotly_dark")
+                     title="Top 10 Products by Profit", template="plotly_dark", text="Total_Profit")
         st.plotly_chart(fig, use_container_width=True)
     with right:
         division_perf = product_perf.groupby("Division", observed=True).agg(Profit=("Total_Profit", "sum")).reset_index()
@@ -241,41 +230,33 @@ def recommendation_page():
     st.dataframe(low_margin)
 
 # ------------------------------------------------
-# FOOTER FUNCTION (Stylish)
+# FOOTER FUNCTION (PROFESSIONAL)
 # ------------------------------------------------
 def add_footer():
     try:
         with open("unified logo.png", "rb") as f:
-            encoded = base64.b64encode(f.read()).decode()
+            encoded_logo = base64.b64encode(f.read()).decode()
         footer_html = f"""
-        <div class='footer' style='display:flex; justify-content:center; align-items:center; gap:15px; flex-wrap:wrap;'>
-            <img src='data:image/png;base64,{encoded}' alt='Unified Logo'>
-            <span style='color:#ffffff; font-weight:600;'>Project mentored by</span>
-            <a href='https://www.linkedin.com/in/saiprasad-kagne/' target='_blank'
-               style='background-color:#0A66C2; color:white; padding:5px 12px; border-radius:12px; text-decoration:none; font-weight:600;'>
-               Sai Prasad Kagne
-            </a>
-            <span style='color:#ffffff; font-weight:600;'>| Created by</span>
-            <a href='https://www.linkedin.com/in/vidit-kapoor-5062b02a6' target='_blank'
-               style='background-color:#0A66C2; color:white; padding:5px 12px; border-radius:12px; text-decoration:none; font-weight:600;'>
-               Vidit Kapoor
-            </a>
+        <div class='footer' style='display:flex; justify-content:space-between; align-items:center; padding:20px 40px; background-color:#1f1f1f; color:#ffffff; font-size:13px; font-family:Arial, sans-serif;'>
+            <div style='display:flex; align-items:center; gap:10px;'>
+                <img src='data:image/png;base64,{encoded_logo}' alt='Unified Logo' style='height:25px;'>
+                <span>Mentored by <a href='https://www.linkedin.com/in/saiprasad-kagne/' target='_blank' style='color:#0A66C2; text-decoration:none;'>Sai Prasad Kagne</a></span>
+            </div>
+            <div>
+                <span>Created by <a href='https://www.linkedin.com/in/vidit-kapoor-5062b02a6' target='_blank' style='color:#0A66C2; text-decoration:none;'>Vidit Kapoor</a></span>
+            </div>
+            <div>
+                <span>Version 1.0 | Last updated: Feb 2026</span>
+            </div>
         </div>
         """
         st.markdown(footer_html, unsafe_allow_html=True)
     except:
         st.markdown("""
-        <div class='footer' style='display:flex; justify-content:center; align-items:center; gap:15px; flex-wrap:wrap;'>
-            <span style='color:#ffffff; font-weight:600;'>Project mentored by</span>
-            <a href='https://www.linkedin.com/in/saiprasad-kagne/' target='_blank'
-               style='background-color:#0A66C2; color:white; padding:5px 12px; border-radius:12px; text-decoration:none; font-weight:600;'>
-               Sai Prasad Kagne
-            </a>
-            <span style='color:#ffffff; font-weight:600;'>| Created by</span>
-            <a href='https://www.linkedin.com/in/vidit-kapoor-5062b02a6' target='_blank'
-               style='background-color:#0A66C2; color:white; padding:5px 12px; border-radius:12px; text-decoration:none; font-weight:600;'>
-               Vidit Kapoor
-            </a>
+        <div class='footer' style='display:flex; justify-content:center; align-items:center; gap:15px; flex-wrap:wrap; padding:15px 20px; background-color:#1f1f1f; color:#ffffff; font-size:13px; font-family:Arial, sans-serif;'>
+            <span>Mentored by <a href='https://www.linkedin.com/in/saiprasad-kagne/' target='_blank' style='color:#0A66C2; text-decoration:none;'>Sai Prasad Kagne</a></span>
+            <span>| Created by <a href='https://www.linkedin.com/in/vidit-kapoor-5062b02a6' target='_blank' style='color:#0A66C2; text-decoration:none;'>Vidit Kapoor</a></span>
+            <span>| Version 1.0 | Last updated: Feb 2026</span>
         </div>
         """, unsafe_allow_html=True)
 
