@@ -156,27 +156,18 @@ product_perf["Profit per Unit"] = (
 )
 
 # ------------------------------------------------
-# EXECUTIVE PAGE (LOGO ONLY HEADER)
+# EXECUTIVE PAGE (LOGO + HEADLINE)
 # ------------------------------------------------
 def executive_page():
 
-    # Logo Header with White Background
+    # Logo centered (no white background)
     if logo:
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            st.markdown("""
-                <div style="
-                    background-color: white;
-                    padding: 20px;
-                    border-radius: 12px;
-                    text-align: center;
-                    margin-bottom: 25px;">
-                """, unsafe_allow_html=True)
-
             st.image(logo, use_container_width=True)
 
-            st.markdown("</div>", unsafe_allow_html=True)
-
+    # Keep headline
+    st.markdown("## Executive Profit Intelligence Dashboard")
     st.markdown("---")
 
     total_revenue = filtered_df["Sales"].sum()
@@ -291,34 +282,6 @@ def profit_concentration_page():
     )
     st.plotly_chart(fig, use_container_width=True)
 
-def factory_map_page():
-    st.title("Factory-Product Map")
-    map_data = []
-    for factory, coords in factory_coords.items():
-        products = product_perf[product_perf["Factory"] == factory]["Product Name"].unique()
-        map_data.append({
-            "Factory": factory,
-            "Latitude": coords[0],
-            "Longitude": coords[1],
-            "Products": ", ".join(products),
-            "Product_Count": len(products)
-        })
-
-    map_df = pd.DataFrame(map_data)
-
-    fig = px.scatter_geo(
-        map_df,
-        lat="Latitude",
-        lon="Longitude",
-        hover_name="Factory",
-        hover_data=["Products", "Product_Count"],
-        size="Product_Count",
-        scope="usa",
-        color="Factory",
-        template="plotly_dark"
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
 def recommendation_page():
     st.title("Strategic Recommendations")
     low_margin = product_perf[product_perf["Avg_Margin"] < 0.15]
@@ -338,7 +301,5 @@ elif page == "Cost & Margin Diagnostics":
     cost_margin_page()
 elif page == "Profit Concentration Analysis":
     profit_concentration_page()
-elif page == "Factory-Product Map":
-    factory_map_page()
 elif page == "Strategic Recommendations":
     recommendation_page()
