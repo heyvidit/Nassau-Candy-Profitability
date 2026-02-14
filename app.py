@@ -4,14 +4,13 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from PIL import Image
-import base64
 
 # ------------------------------------------------
 # PAGE CONFIG
 # ------------------------------------------------
 st.set_page_config(
     page_title="Profit Intelligence Dashboard",
-    page_icon="favicon.png",  # your favicon
+    page_icon="favicon.png",  # Favicon image
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -27,34 +26,49 @@ st.markdown("""
     padding-right: 3rem;
     max-width: 1400px;
 }
+
+/* Footer Styling */
+.footer {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    background-color: rgba(0,0,0,0.7);
+    color: #ffffff;
+    text-align: center;
+    font-size: 12px;
+    padding: 8px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+.footer img {
+    height: 18px; /* Subtle logo size */
+}
+.footer a {
+    color: #1da1f2; /* LinkedIn blue */
+    text-decoration: none;
+}
+.footer a:hover {
+    text-decoration: underline;
+}
 </style>
 """, unsafe_allow_html=True)
 
 # ------------------------------------------------
-# LOAD LOGOS
+# LOAD LOGO
 # ------------------------------------------------
 try:
-    logo = Image.open("logo.png")  # main dashboard logo
+    logo = Image.open("logo.png")
 except:
     logo = None
 
+# Unified logo for footer
 try:
-    footer_logo = Image.open("unified logo.png")  # footer logo
+    footer_logo = Image.open("unified logo.png")
 except:
     footer_logo = None
-
-# ------------------------------------------------
-# HELPER TO CONVERT LOGO TO BASE64 FOR FOOTER
-# ------------------------------------------------
-def get_logo_base64(img_path):
-    try:
-        with open(img_path, "rb") as f:
-            data = f.read()
-        return base64.b64encode(data).decode()
-    except:
-        return ""
-
-footer_logo_base64 = get_logo_base64("unified logo.png")
 
 # ------------------------------------------------
 # LOAD DATA
@@ -65,7 +79,6 @@ def load_data():
     df = df[(df["Sales"] > 0) & (df["Units"] > 0)]
     df = df.dropna(subset=["Sales", "Units", "Gross Profit", "Cost"])
     df["Order Date"] = pd.to_datetime(df["Order Date"], errors="coerce")
-
     df["Gross Margin %"] = np.where(df["Sales"] != 0,
                                     df["Gross Profit"] / df["Sales"], 0)
     df["Profit per Unit"] = np.where(df["Units"] != 0,
@@ -94,7 +107,6 @@ factory_map = {
     "Wonka Gum": "Secret Factory",
     "Kazookles": "The Other Factory"
 }
-
 df["Factory"] = df["Product Name"].map(factory_map)
 
 # ------------------------------------------------
@@ -109,28 +121,23 @@ factory_coords = {
 }
 
 # ------------------------------------------------
-# SIDEBAR
+# SIDEBAR FILTERS
 # ------------------------------------------------
 st.sidebar.title("🔎 Filters")
-
 division_filter = st.sidebar.multiselect(
     "Division",
     options=df["Division"].unique(),
     default=df["Division"].unique()
 )
-
 st.sidebar.markdown("### 📅 Order Date Range")
-
 date_range = st.sidebar.date_input(
     "Order Date Range",
     value=(df["Order Date"].min(), df["Order Date"].max())
 )
-
 margin_threshold = st.sidebar.slider(
     "Minimum Gross Margin (%)",
     0, 100, 0
 )
-
 page = st.sidebar.radio(
     "Select Page",
     [
@@ -169,7 +176,6 @@ product_perf = (
     )
     .reset_index()
 )
-
 product_perf["Profit per Unit"] = (
     product_perf["Total_Profit"] / product_perf["Total_Units"]
 )
@@ -178,22 +184,17 @@ product_perf["Profit per Unit"] = (
 # EXECUTIVE PAGE
 # ------------------------------------------------
 def executive_page():
-    # Top padding
     st.markdown("<div style='padding-top:20px'></div>", unsafe_allow_html=True)
-
-    # Centered logo
     if logo:
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             st.image(logo, width=500)
-
     st.markdown("## Executive Profit Intelligence Dashboard")
     st.markdown("---")
 
     total_revenue = filtered_df["Sales"].sum()
     total_profit = filtered_df["Gross Profit"].sum()
     avg_margin = filtered_df["Gross Margin %"].mean() * 100
-
     top5_profit_share = (
         product_perf.sort_values("Total_Profit", ascending=False)
         .head(5)["Total_Profit"].sum()
@@ -207,9 +208,7 @@ def executive_page():
     col4.metric("Top 5 Profit Share", f"{top5_profit_share:.1f}%")
 
     st.markdown("---")
-
     left, right = st.columns([2, 1])
-
     with left:
         top_products = product_perf.sort_values("Total_Profit", ascending=False).head(10)
         fig = px.bar(
@@ -221,7 +220,6 @@ def executive_page():
             template="plotly_dark"
         )
         st.plotly_chart(fig, use_container_width=True)
-
     with right:
         division_perf = product_perf.groupby("Division", observed=True).agg(
             Profit=("Total_Profit", "sum")
@@ -236,7 +234,7 @@ def executive_page():
         st.plotly_chart(fig2, use_container_width=True)
 
 # ------------------------------------------------
-# OTHER PAGES (UNCHANGED)
+# OTHER PAGES
 # ------------------------------------------------
 def product_portfolio_analysis():
     st.title("Product Portfolio Analysis")
@@ -283,16 +281,12 @@ def profit_concentration_page():
     st.title("Profit Concentration Analysis")
     pareto = product_perf.sort_values("Total_Profit", ascending=False)
     pareto["Cumulative %"] = pareto["Total_Profit"].cumsum() / pareto["Total_Profit"].sum()
-
     fig = go.Figure()
     fig.add_bar(x=pareto["Product Name"], y=pareto["Total_Profit"], name="Profit")
     fig.add_scatter(x=pareto["Product Name"], y=pareto["Cumulative %"],
                     name="Cumulative %", yaxis="y2")
-
-    fig.update_layout(
-        template="plotly_dark",
-        yaxis2=dict(overlaying='y', side='right')
-    )
+    fig.update_layout(template="plotly_dark",
+                      yaxis2=dict(overlaying='y', side='right'))
     st.plotly_chart(fig, use_container_width=True)
 
 def recommendation_page():
@@ -300,41 +294,6 @@ def recommendation_page():
     low_margin = product_perf[product_perf["Avg_Margin"] < 0.15]
     st.write(f"{len(low_margin)} products operate below 15% margin.")
     st.dataframe(low_margin)
-
-# ------------------------------------------------
-# FOOTER FUNCTION
-# ------------------------------------------------
-def add_footer():
-    footer_html = f"""
-    <style>
-    .footer {{
-        position: fixed;
-        bottom: 0;
-        width: 100%;
-        background-color: #111;
-        color: white;
-        text-align: center;
-        padding: 8px;
-        font-size: 14px;
-        z-index: 100;
-    }}
-    .footer a {{
-        color: #0A66C2;
-        text-decoration: none;
-        font-weight: bold;
-    }}
-    .footer img {{
-        height: 20px;
-        vertical-align: middle;
-        margin-right: 8px;
-    }}
-    </style>
-    <div class="footer">
-        <img src="data:image/png;base64,{footer_logo_base64}" />
-        Unified Mentor gave me this project | Created by <a href="https://www.linkedin.com/in/vidit-kapoor-5062b02a6" target="_blank">Vidit Kapoor</a>
-    </div>
-    """
-    st.markdown(footer_html, unsafe_allow_html=True)
 
 # ------------------------------------------------
 # PAGE ROUTING
@@ -352,5 +311,13 @@ elif page == "Profit Concentration Analysis":
 elif page == "Strategic Recommendations":
     recommendation_page()
 
-# Add footer at the end of every page
-add_footer()
+# ------------------------------------------------
+# FOOTER
+# ------------------------------------------------
+footer_html = "<div class='footer'>"
+if footer_logo:
+    footer_html += f"<img src='data:image/png;base64,{st.image(footer_logo, output_format='PNG')}' alt='Logo'>"
+footer_html += "Project provided by Unified Mentor | Created by <a href='https://www.linkedin.com/in/vidit-kapoor-5062b02a6' target='_blank'>Vidit Kapoor</a>"
+footer_html += "</div>"
+
+st.markdown(footer_html, unsafe_allow_html=True)
