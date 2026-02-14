@@ -160,13 +160,20 @@ product_perf["Profit per Unit"] = (
 # ------------------------------------------------
 def executive_page():
 
-    # Logo centered (no white background)
+    # Logo centered with top padding
     if logo:
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            st.image(logo, use_container_width=True)
+            st.markdown(
+                f"""
+                <div style="text-align:center; margin-top:20px;">
+                    <img src="logo.png" width="200" style="object-fit:contain;">
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
-    # Keep headline
+    # Headline
     st.markdown("## Executive Profit Intelligence Dashboard")
     st.markdown("---")
 
