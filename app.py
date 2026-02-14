@@ -22,7 +22,7 @@ st.set_page_config(
 st.markdown("""
 <style>
 .block-container {
-    padding-top: 6rem;
+    padding-top: 2rem;
     padding-left: 3rem;
     padding-right: 3rem;
     max-width: 1400px;
@@ -30,7 +30,7 @@ st.markdown("""
 .footer {
     font-size: 14px;
     text-align: center;
-    padding: 10px 0;
+    padding: 20px 0;
     color: #ffffff;
 }
 .footer img {
