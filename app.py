@@ -4,13 +4,14 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from PIL import Image
+import base64
 
 # ------------------------------------------------
 # PAGE CONFIG
 # ------------------------------------------------
 st.set_page_config(
     page_title="Profit Intelligence Dashboard",
-    page_icon="favicon.png",
+    page_icon="favicon.png",  # your favicon
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -30,12 +31,30 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ------------------------------------------------
-# LOAD LOGO
+# LOAD LOGOS
 # ------------------------------------------------
 try:
-    logo = Image.open("logo.png")
+    logo = Image.open("logo.png")  # main dashboard logo
 except:
     logo = None
+
+try:
+    footer_logo = Image.open("unified logo.png")  # footer logo
+except:
+    footer_logo = None
+
+# ------------------------------------------------
+# HELPER TO CONVERT LOGO TO BASE64 FOR FOOTER
+# ------------------------------------------------
+def get_logo_base64(img_path):
+    try:
+        with open(img_path, "rb") as f:
+            data = f.read()
+        return base64.b64encode(data).decode()
+    except:
+        return ""
+
+footer_logo_base64 = get_logo_base64("unified logo.png")
 
 # ------------------------------------------------
 # LOAD DATA
@@ -156,20 +175,18 @@ product_perf["Profit per Unit"] = (
 )
 
 # ------------------------------------------------
-# EXECUTIVE PAGE (LOGO + HEADLINE)
+# EXECUTIVE PAGE
 # ------------------------------------------------
 def executive_page():
-
-    # Add top padding
+    # Top padding
     st.markdown("<div style='padding-top:20px'></div>", unsafe_allow_html=True)
 
-    # Logo centered
+    # Centered logo
     if logo:
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            st.image(logo, width=500)  # Adjust width as needed
+            st.image(logo, width=500)
 
-    # Headline
     st.markdown("## Executive Profit Intelligence Dashboard")
     st.markdown("---")
 
@@ -194,11 +211,7 @@ def executive_page():
     left, right = st.columns([2, 1])
 
     with left:
-        top_products = (
-            product_perf.sort_values("Total_Profit", ascending=False)
-            .head(10)
-        )
-
+        top_products = product_perf.sort_values("Total_Profit", ascending=False).head(10)
         fig = px.bar(
             top_products,
             x="Total_Profit",
@@ -207,14 +220,12 @@ def executive_page():
             title="Top 10 Products by Profit",
             template="plotly_dark"
         )
-
         st.plotly_chart(fig, use_container_width=True)
 
     with right:
         division_perf = product_perf.groupby("Division", observed=True).agg(
             Profit=("Total_Profit", "sum")
         ).reset_index()
-
         fig2 = px.pie(
             division_perf,
             names="Division",
@@ -222,7 +233,6 @@ def executive_page():
             title="Profit Share by Division",
             hole=0.5
         )
-
         st.plotly_chart(fig2, use_container_width=True)
 
 # ------------------------------------------------
@@ -292,6 +302,41 @@ def recommendation_page():
     st.dataframe(low_margin)
 
 # ------------------------------------------------
+# FOOTER FUNCTION
+# ------------------------------------------------
+def add_footer():
+    footer_html = f"""
+    <style>
+    .footer {{
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        background-color: #111;
+        color: white;
+        text-align: center;
+        padding: 8px;
+        font-size: 14px;
+        z-index: 100;
+    }}
+    .footer a {{
+        color: #0A66C2;
+        text-decoration: none;
+        font-weight: bold;
+    }}
+    .footer img {{
+        height: 20px;
+        vertical-align: middle;
+        margin-right: 8px;
+    }}
+    </style>
+    <div class="footer">
+        <img src="data:image/png;base64,{footer_logo_base64}" />
+        Unified Mentor gave me this project | Created by <a href="https://www.linkedin.com/in/vidit-kapoor-5062b02a6" target="_blank">Vidit Kapoor</a>
+    </div>
+    """
+    st.markdown(footer_html, unsafe_allow_html=True)
+
+# ------------------------------------------------
 # PAGE ROUTING
 # ------------------------------------------------
 if page == "Executive Intelligence":
@@ -306,3 +351,6 @@ elif page == "Profit Concentration Analysis":
     profit_concentration_page()
 elif page == "Strategic Recommendations":
     recommendation_page()
+
+# Add footer at the end of every page
+add_footer()
