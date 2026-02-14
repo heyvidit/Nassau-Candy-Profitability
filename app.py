@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+from PIL import Image
 
 # ------------------------------------------------
 # PAGE CONFIG
@@ -25,8 +26,25 @@ st.markdown("""
     padding-right: 3rem;
     max-width: 1400px;
 }
+.company-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+.company-title {
+    font-size: 36px;
+    font-weight: 700;
+}
 </style>
 """, unsafe_allow_html=True)
+
+# ------------------------------------------------
+# LOAD LOGO
+# ------------------------------------------------
+try:
+    logo = Image.open("logo.png")  # make sure logo.png is in same folder
+except:
+    logo = None
 
 # ------------------------------------------------
 # LOAD DATA
@@ -91,17 +109,14 @@ division_filter = st.sidebar.multiselect(
     default=df["Division"].unique()
 )
 
-# Improved calendar alignment with smaller height
-st.sidebar.markdown("### 📅 Order Date Range", unsafe_allow_html=True)
+st.sidebar.markdown("### 📅 Order Date Range")
 
-# Custom CSS to decrease date picker height
 st.sidebar.markdown("""
-    <style>
-    /* Decrease the height of the Streamlit date picker */
-    div[data-baseweb="date-picker"] > div {
-        min-height: 40px !important;  /* Adjust this value to your preference */
-    }
-    </style>
+<style>
+div[data-baseweb="date-picker"] > div {
+    min-height: 40px !important;
+}
+</style>
 """, unsafe_allow_html=True)
 
 date_range = st.sidebar.date_input(
@@ -156,10 +171,22 @@ product_perf = (
 product_perf["Profit per Unit"] = product_perf["Total_Profit"] / product_perf["Total_Units"]
 
 # ------------------------------------------------
-# EXECUTIVE PAGE (BALANCED LAYOUT)
+# EXECUTIVE PAGE (UPDATED WITH COMPANY NAME + LOGO)
 # ------------------------------------------------
 def executive_page():
-    st.title("Executive Profit Intelligence")
+
+    # HEADER SECTION
+    col_logo, col_title = st.columns([1, 5])
+
+    with col_logo:
+        if logo:
+            st.image(logo, width=120)
+
+    with col_title:
+        st.markdown("<div class='company-title'>Nassau Candy Distributor</div>", unsafe_allow_html=True)
+        st.markdown("### Executive Profit Intelligence Dashboard")
+
+    st.markdown("---")
 
     total_revenue = filtered_df["Sales"].sum()
     total_profit = filtered_df["Gross Profit"].sum()
@@ -171,7 +198,6 @@ def executive_page():
         / total_profit * 100
     )
 
-    # KPI ROW
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Total Revenue", f"${total_revenue:,.0f}")
     col2.metric("Total Profit", f"${total_profit:,.0f}")
@@ -180,7 +206,6 @@ def executive_page():
 
     st.markdown("---")
 
-    # Balanced Layout with plots to remove empty space
     left, right = st.columns([2, 1])
 
     with left:
@@ -216,130 +241,7 @@ def executive_page():
         st.plotly_chart(fig2, use_container_width=True)
 
 # ------------------------------------------------
-# PRODUCT PORTFOLIO ANALYSIS PAGE
-# ------------------------------------------------
-def product_portfolio_analysis():
-    st.title("Product Portfolio Analysis")
-
-    fig = px.scatter(
-        product_perf,
-        x="Total_Sales",
-        y="Total_Profit",
-        size="Total_Units",
-        color="Division",
-        hover_data=["Product Name", "Avg_Margin"],
-        template="plotly_dark"
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
-
-# ------------------------------------------------
-# DIVISION & FACTORY PERFORMANCE PAGE
-# ------------------------------------------------
-def division_factory_page():
-    st.title("Division & Factory Performance")
-
-    division_perf = product_perf.groupby("Division", observed=True).agg(
-        Revenue=("Total_Sales", "sum"),
-        Profit=("Total_Profit", "sum")
-    ).reset_index()
-
-    fig = px.bar(
-        division_perf,
-        x="Division",
-        y=["Revenue", "Profit"],
-        barmode="group",
-        template="plotly_dark"
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
-
-# ------------------------------------------------
-# COST & MARGIN DIAGNOSTICS PAGE
-# ------------------------------------------------
-def cost_margin_page():
-    st.title("Cost & Margin Diagnostics")
-
-    fig = px.scatter(
-        filtered_df,
-        x="Cost",
-        y="Gross Margin %",
-        color="Division",
-        template="plotly_dark",
-        hover_data=["Product Name"]
-    )
-
-    fig.add_hline(y=filtered_df["Gross Margin %"].median(), line_dash="dash")
-
-    st.plotly_chart(fig, use_container_width=True)
-
-# ------------------------------------------------
-# PROFIT CONCENTRATION ANALYSIS PAGE
-# ------------------------------------------------
-def profit_concentration_page():
-    st.title("Profit Concentration Analysis")
-
-    pareto = product_perf.sort_values("Total_Profit", ascending=False)
-    pareto["Cumulative %"] = pareto["Total_Profit"].cumsum() / pareto["Total_Profit"].sum()
-
-    fig = go.Figure()
-
-    fig.add_bar(x=pareto["Product Name"], y=pareto["Total_Profit"], name="Profit")
-    fig.add_scatter(x=pareto["Product Name"], y=pareto["Cumulative %"], name="Cumulative %", yaxis="y2")
-
-    fig.update_layout(
-        template="plotly_dark",
-        yaxis2=dict(overlaying='y', side='right')
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
-
-# ------------------------------------------------
-# FACTORY-PRODUCT MAP PAGE
-# ------------------------------------------------
-def factory_map_page():
-    st.title("Factory-Product Map")
-
-    map_data = []
-    for factory, coords in factory_coords.items():
-        products = product_perf[product_perf["Factory"] == factory]["Product Name"].unique()
-        map_data.append({
-            "Factory": factory,
-            "Latitude": coords[0],
-            "Longitude": coords[1],
-            "Products": ", ".join(products),
-            "Product_Count": len(products)
-        })
-
-    map_df = pd.DataFrame(map_data)
-
-    fig = px.scatter_geo(
-        map_df,
-        lat="Latitude",
-        lon="Longitude",
-        hover_name="Factory",
-        hover_data=["Products", "Product_Count"],
-        size="Product_Count",
-        scope="usa",
-        color="Factory",
-        template="plotly_dark"
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
-
-# ------------------------------------------------
-# STRATEGIC RECOMMENDATIONS PAGE
-# ------------------------------------------------
-def recommendation_page():
-    st.title("Strategic Recommendations")
-
-    low_margin = product_perf[product_perf["Avg_Margin"] < 0.15]
-
-    st.write(f"{len(low_margin)} products operate below 15% margin.")
-    st.dataframe(low_margin)
-
-# ------------------------------------------------
-# PAGE ROUTING
+# PAGE ROUTING (UNCHANGED)
 # ------------------------------------------------
 if page == "Executive Intelligence":
     executive_page()
