@@ -9,14 +9,14 @@ from PIL import Image
 # PAGE CONFIG
 # ------------------------------------------------
 st.set_page_config(
-    page_title="Nassau Candy | Profit Intelligence",
+    page_title="Profit Intelligence Dashboard",
     page_icon="🍬",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 # ------------------------------------------------
-# GLOBAL STYLE FIX (BALANCE + WIDTH)
+# GLOBAL STYLE
 # ------------------------------------------------
 st.markdown("""
 <style>
@@ -26,15 +26,6 @@ st.markdown("""
     padding-right: 3rem;
     max-width: 1400px;
 }
-.company-header {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-}
-.company-title {
-    font-size: 36px;
-    font-weight: 700;
-}
 </style>
 """, unsafe_allow_html=True)
 
@@ -42,7 +33,7 @@ st.markdown("""
 # LOAD LOGO
 # ------------------------------------------------
 try:
-    logo = Image.open("logo.png")  # make sure logo.png is in same folder
+    logo = Image.open("logo.png")
 except:
     logo = None
 
@@ -111,16 +102,8 @@ division_filter = st.sidebar.multiselect(
 
 st.sidebar.markdown("### 📅 Order Date Range")
 
-st.sidebar.markdown("""
-<style>
-div[data-baseweb="date-picker"] > div {
-    min-height: 40px !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
 date_range = st.sidebar.date_input(
-    label="Order Date Range",
+    "Order Date Range",
     value=(df["Order Date"].min(), df["Order Date"].max())
 )
 
@@ -168,23 +151,31 @@ product_perf = (
     .reset_index()
 )
 
-product_perf["Profit per Unit"] = product_perf["Total_Profit"] / product_perf["Total_Units"]
+product_perf["Profit per Unit"] = (
+    product_perf["Total_Profit"] / product_perf["Total_Units"]
+)
 
 # ------------------------------------------------
-# EXECUTIVE PAGE (UPDATED WITH COMPANY NAME + LOGO)
+# EXECUTIVE PAGE (LOGO ONLY HEADER)
 # ------------------------------------------------
 def executive_page():
 
-    # HEADER SECTION
-    col_logo, col_title = st.columns([1, 5])
+    # Logo Header with White Background
+    if logo:
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.markdown("""
+                <div style="
+                    background-color: white;
+                    padding: 20px;
+                    border-radius: 12px;
+                    text-align: center;
+                    margin-bottom: 25px;">
+                """, unsafe_allow_html=True)
 
-    with col_logo:
-        if logo:
-            st.image(logo, width=120)
+            st.image(logo, use_container_width=True)
 
-    with col_title:
-        st.markdown("<div class='company-title'>Nassau Candy Distributor</div>", unsafe_allow_html=True)
-        st.markdown("### Executive Profit Intelligence Dashboard")
+            st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("---")
 
@@ -241,7 +232,101 @@ def executive_page():
         st.plotly_chart(fig2, use_container_width=True)
 
 # ------------------------------------------------
-# PAGE ROUTING (UNCHANGED)
+# OTHER PAGES (UNCHANGED)
+# ------------------------------------------------
+def product_portfolio_analysis():
+    st.title("Product Portfolio Analysis")
+    fig = px.scatter(
+        product_perf,
+        x="Total_Sales",
+        y="Total_Profit",
+        size="Total_Units",
+        color="Division",
+        hover_data=["Product Name", "Avg_Margin"],
+        template="plotly_dark"
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+def division_factory_page():
+    st.title("Division & Factory Performance")
+    division_perf = product_perf.groupby("Division", observed=True).agg(
+        Revenue=("Total_Sales", "sum"),
+        Profit=("Total_Profit", "sum")
+    ).reset_index()
+    fig = px.bar(
+        division_perf,
+        x="Division",
+        y=["Revenue", "Profit"],
+        barmode="group",
+        template="plotly_dark"
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+def cost_margin_page():
+    st.title("Cost & Margin Diagnostics")
+    fig = px.scatter(
+        filtered_df,
+        x="Cost",
+        y="Gross Margin %",
+        color="Division",
+        template="plotly_dark",
+        hover_data=["Product Name"]
+    )
+    fig.add_hline(y=filtered_df["Gross Margin %"].median(), line_dash="dash")
+    st.plotly_chart(fig, use_container_width=True)
+
+def profit_concentration_page():
+    st.title("Profit Concentration Analysis")
+    pareto = product_perf.sort_values("Total_Profit", ascending=False)
+    pareto["Cumulative %"] = pareto["Total_Profit"].cumsum() / pareto["Total_Profit"].sum()
+
+    fig = go.Figure()
+    fig.add_bar(x=pareto["Product Name"], y=pareto["Total_Profit"], name="Profit")
+    fig.add_scatter(x=pareto["Product Name"], y=pareto["Cumulative %"],
+                    name="Cumulative %", yaxis="y2")
+
+    fig.update_layout(
+        template="plotly_dark",
+        yaxis2=dict(overlaying='y', side='right')
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+def factory_map_page():
+    st.title("Factory-Product Map")
+    map_data = []
+    for factory, coords in factory_coords.items():
+        products = product_perf[product_perf["Factory"] == factory]["Product Name"].unique()
+        map_data.append({
+            "Factory": factory,
+            "Latitude": coords[0],
+            "Longitude": coords[1],
+            "Products": ", ".join(products),
+            "Product_Count": len(products)
+        })
+
+    map_df = pd.DataFrame(map_data)
+
+    fig = px.scatter_geo(
+        map_df,
+        lat="Latitude",
+        lon="Longitude",
+        hover_name="Factory",
+        hover_data=["Products", "Product_Count"],
+        size="Product_Count",
+        scope="usa",
+        color="Factory",
+        template="plotly_dark"
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+def recommendation_page():
+    st.title("Strategic Recommendations")
+    low_margin = product_perf[product_perf["Avg_Margin"] < 0.15]
+    st.write(f"{len(low_margin)} products operate below 15% margin.")
+    st.dataframe(low_margin)
+
+# ------------------------------------------------
+# PAGE ROUTING
 # ------------------------------------------------
 if page == "Executive Intelligence":
     executive_page()
