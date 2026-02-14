@@ -167,7 +167,7 @@ def executive_page():
     if logo:
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            st.image(logo, width=200)  # Adjust width as needed
+            st.image(logo, width=500)  # Adjust width as needed
 
     # Headline
     st.markdown("## Executive Profit Intelligence Dashboard")
