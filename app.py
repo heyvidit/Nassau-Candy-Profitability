@@ -237,7 +237,7 @@ def add_footer():
         with open("unified logo.png", "rb") as f:
             encoded_logo = base64.b64encode(f.read()).decode()
         footer_html = f"""
-        <div class='footer' style='display:flex; justify-content:space-between; align-items:center; padding:25px 45px; background-color:#1f1f1f; color:#1f1f1f; font-size:13px; font-family:Arial, sans-serif;'>
+        <div class='footer' style='display:flex; justify-content:space-between; align-items:center; padding:25px 45px; background-color:#FFFFFF; color:white; font-size:13px; font-family:Arial, sans-serif;'>
             <div style='display:flex; align-items:center; gap:15px;'>
                 <img src='data:image/png;base64,{encoded_logo}' alt='Unified Logo' style='height:25px;'>
                 <span>Mentored by <a href='https://www.linkedin.com/in/saiprasad-kagne/' target='_blank' style='color:#0A66C2; text-decoration:none;'>Sai Prasad Kagne</a></span>
