@@ -30,13 +30,17 @@ st.markdown("""
 .footer {
     font-size: 14px;
     text-align: center;
-    padding: 7rem 0;
+    padding: 3rem 0;
     color: #ffffff;
 }
 .footer img {
     height: 30px;
     vertical-align: middle;
     margin-right: 8px;
+}
+.footer a {
+    color: #ffffff;
+    text-decoration: underline;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -108,18 +112,15 @@ division_filter = st.sidebar.multiselect(
     options=df["Division"].unique(),
     default=df["Division"].unique()
 )
-
 st.sidebar.markdown("### 📅 Order Date Range")
 date_range = st.sidebar.date_input(
     "Order Date Range",
     value=(df["Order Date"].min(), df["Order Date"].max())
 )
-
 margin_threshold = st.sidebar.slider(
     "Minimum Gross Margin (%)",
     0, 100, 0
 )
-
 page = st.sidebar.radio(
     "Select Page",
     [
@@ -165,12 +166,10 @@ product_perf["Profit per Unit"] = product_perf["Total_Profit"] / product_perf["T
 # ------------------------------------------------
 def executive_page():
     st.markdown("<div style='padding-top:20px'></div>", unsafe_allow_html=True)
-
     if logo:
         col1, col2, col3 = st.columns([1,2,1])
         with col2:
             st.image(logo, width=500)
-
     st.markdown("## Executive Profit Intelligence Dashboard")
     st.markdown("---")
 
@@ -250,16 +249,17 @@ def add_footer():
         footer_html = f"""
         <div class='footer'>
             <img src='data:image/png;base64,{encoded}' alt='Unified Logo'>
-            Project provided by Unified Mentor | Created by 
+            Project mentored by 
+            <a href='https://www.linkedin.com/in/saiprasad-kagne/' target='_blank'>Sai Prasad Kagne</a> | Created by 
             <a href='https://www.linkedin.com/in/vidit-kapoor-5062b02a6' target='_blank'>Vidit Kapoor</a>
         </div>
         """
         st.markdown(footer_html, unsafe_allow_html=True)
     except:
-        # fallback text only if logo missing
         st.markdown("""
         <div class='footer'>
-            Project provided by Unified Mentor | Created by 
+            Project mentored by 
+            <a href='https://www.linkedin.com/in/saiprasad-kagne/' target='_blank'>Sai Prasad Kagne</a> | Created by 
             <a href='https://www.linkedin.com/in/vidit-kapoor-5062b02a6' target='_blank'>Vidit Kapoor</a>
         </div>
         """, unsafe_allow_html=True)
