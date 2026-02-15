@@ -45,10 +45,7 @@ except:
 def load_data():
     df = pd.read_csv("Nassau Candy Distributor (1).csv")
 
-    # Remove duplicates
     df = df.drop_duplicates(subset=["Order ID", "Product ID"])
-
-    # Basic validation
     df = df[(df["Sales"] > 0) & (df["Units"] > 0)]
     df = df.dropna(subset=["Sales", "Units", "Gross Profit", "Cost"])
 
@@ -60,7 +57,6 @@ def load_data():
     df["Gross Margin %"] = df["Gross Profit"] / df["Sales"]
     df["Profit per Unit"] = df["Gross Profit"] / df["Units"]
 
-    # Profit validation check
     df["Calculated Profit"] = df["Sales"] - df["Cost"]
     df["Profit Mismatch"] = df["Gross Profit"] - df["Calculated Profit"]
 
@@ -177,23 +173,21 @@ total_profit = product_perf["Total_Profit"].sum()
 product_perf["Revenue Contribution %"] = product_perf["Total_Sales"] / total_sales * 100
 product_perf["Profit Contribution %"] = product_perf["Total_Profit"] / total_profit * 100
 
-# Quadrant classification
 sales_median = product_perf["Total_Sales"].median()
 margin_median = product_perf["Avg_Margin"].median()
 
 def classify(row):
     if row["Total_Sales"] > sales_median and row["Avg_Margin"] > margin_median:
         return "Star Performer"
-    elif row["Total_Sales"] > sales_median and row["Avg_Margin"] <= margin_median:
+    elif row["Total_Sales"] > sales_median:
         return "Volume Driver - Margin Risk"
-    elif row["Total_Sales"] <= sales_median and row["Avg_Margin"] > margin_median:
+    elif row["Avg_Margin"] > margin_median:
         return "Niche High Margin"
     else:
         return "Low Performer"
 
 product_perf["Category"] = product_perf.apply(classify, axis=1)
 
-# Margin Volatility
 filtered_df["Month"] = filtered_df["Order Date"].dt.to_period("M")
 volatility = (
     filtered_df.groupby(["Product Name", "Month"])["Gross Margin %"]
@@ -208,7 +202,6 @@ product_perf = product_perf.merge(volatility, on="Product Name", how="left")
 # ------------------------------------------------
 # PAGES
 # ------------------------------------------------
-
 def executive_page():
     st.title("Executive Profit Intelligence")
 
@@ -225,7 +218,6 @@ def executive_page():
                  template="plotly_dark")
     st.plotly_chart(fig, use_container_width=True)
 
-
 def product_portfolio_page():
     st.title("Product Portfolio Analysis")
     fig = px.scatter(product_perf,
@@ -236,7 +228,6 @@ def product_portfolio_page():
                      hover_data=["Avg_Margin", "Margin Volatility"],
                      template="plotly_dark")
     st.plotly_chart(fig, use_container_width=True)
-
 
 def division_page():
     st.title("Division Performance")
@@ -255,7 +246,6 @@ def division_page():
 
     st.dataframe(division_perf)
 
-
 def cost_margin_page():
     st.title("Cost & Margin Diagnostics")
 
@@ -273,7 +263,6 @@ def cost_margin_page():
                       template="plotly_dark")
     st.plotly_chart(fig2, use_container_width=True)
 
-
 def pareto_page():
     st.title("Profit Concentration (Pareto)")
 
@@ -286,16 +275,13 @@ def pareto_page():
                     name="Cumulative %",
                     yaxis="y2")
 
-    fig.update_layout(
-        yaxis2=dict(overlaying='y', side='right'),
-        template="plotly_dark"
-    )
+    fig.update_layout(yaxis2=dict(overlaying='y', side='right'),
+                      template="plotly_dark")
 
     st.plotly_chart(fig, use_container_width=True)
 
     count_80 = pareto[pareto["Cumulative %"] <= 80].shape[0]
     st.info(f"{count_80} products contribute to 80% of total profit.")
-
 
 def factory_map_page():
     st.title("Factory-Product Geographic Map")
@@ -319,12 +305,13 @@ def factory_map_page():
 
     st.plotly_chart(fig, use_container_width=True)
 
-
 def recommendation_page():
     st.title("Strategic Recommendations")
 
     low_margin = product_perf[product_perf["Avg_Margin"] < 0.15]
-    high_volatility = product_perf[product_perf["Margin Volatility"] > product_perf["Margin Volatility"].median()]
+    high_volatility = product_perf[
+        product_perf["Margin Volatility"] > product_perf["Margin Volatility"].median()
+    ]
 
     st.subheader("Low Margin Products (<15%)")
     st.dataframe(low_margin)
@@ -332,6 +319,36 @@ def recommendation_page():
     st.subheader("High Margin Volatility Products")
     st.dataframe(high_volatility)
 
+# ------------------------------------------------
+# FOOTER (RESTORED EXACTLY)
+# ------------------------------------------------
+def add_footer():
+    try:
+        with open("unified logo.png", "rb") as f:
+            encoded_logo = base64.b64encode(f.read()).decode()
+        footer_html = f"""
+        <div class='footer' style='display:flex; justify-content:space-between; align-items:center; padding:20px 40px; background-color:#0E1117; color:#ffffff; font-size:13px; font-family:Arial, sans-serif;'>
+            <div style='display:flex; align-items:center; gap:10px;'>
+                <img src='data:image/png;base64,{encoded_logo}' alt='Unified Logo' style='height:50px; width:auto'>
+                <span>Mentored by <a href='https://www.linkedin.com/in/saiprasad-kagne/' target='_blank' style='color:#0A66C2; text-decoration:none;'>Sai Prasad Kagne</a></span>
+            </div>
+            <div>
+                <span>Created by <a href='https://www.linkedin.com/in/vidit-kapoor-5062b02a6' target='_blank' style='color:#0A66C2; text-decoration:none;'>Vidit Kapoor</a></span>
+            </div>
+            <div>
+                <span>Version 1.0 | Last updated: Feb 2026</span>
+            </div>
+        </div>
+        """
+        st.markdown(footer_html, unsafe_allow_html=True)
+    except:
+        st.markdown(f"""
+        <div class='footer' style='display:flex; justify-content:center; align-items:center; gap:15px; flex-wrap:wrap; padding:15px 20px; background-color:#0E1117; color:#ffffff; font-size:13px; font-family:Arial, sans-serif;'>
+            <span>Mentored by <a href='https://www.linkedin.com/in/saiprasad-kagne/' target='_blank' style='color:#0A66C2; text-decoration:none;'>Sai Prasad Kagne</a></span>
+            <span>| Created by <a href='https://www.linkedin.com/in/vidit-kapoor-5062b02a6' target='_blank' style='color:#0A66C2; text-decoration:none;'>Vidit Kapoor</a></span>
+            <span>| Version 1.0 | Last updated: Feb 2026</span>
+        </div>
+        """, unsafe_allow_html=True)
 
 # ------------------------------------------------
 # ROUTING
@@ -350,3 +367,5 @@ elif page == "Factory-Product Map":
     factory_map_page()
 elif page == "Strategic Recommendations":
     recommendation_page()
+
+add_footer()
