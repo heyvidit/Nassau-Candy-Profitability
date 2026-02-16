@@ -39,7 +39,7 @@ st.markdown("""
 }
 
 .company-logo {
-    max-width:240px;
+    max-width:6rem;
     height:auto;
     object-fit:contain;
 }
