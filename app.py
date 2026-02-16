@@ -21,8 +21,6 @@ st.set_page_config(
 # ------------------------------------------------
 st.markdown("""
 <style>
-
-
 .company-header {
     width: 100%;
     display: flex;
@@ -31,12 +29,10 @@ st.markdown("""
     margin-top: 0;
     margin-bottom: 2rem;
 }
-
 .company-logo {
     height: 4rem;
     width: auto;
 }
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -44,7 +40,6 @@ def add_company_header():
     try:
         with open("logo.png", "rb") as f:
             encoded_logo = base64.b64encode(f.read()).decode()
-
         header_html = f"""
         <div class="company-header">
             <img src="data:image/png;base64,{encoded_logo}" class="company-logo">
@@ -170,7 +165,7 @@ if filtered_df.empty:
     st.stop()
 
 # ------------------------------------------------
-# AGGREGATION
+# AGGREGATION (FIXED MARGIN LOGIC)
 # ------------------------------------------------
 product_perf = (
     filtered_df
@@ -178,12 +173,12 @@ product_perf = (
     .agg(
         Total_Sales=("Sales", "sum"),
         Total_Profit=("Gross Profit", "sum"),
-        Total_Units=("Units", "sum"),
-        Avg_Margin=("Gross Margin %", "mean")
+        Total_Units=("Units", "sum")
     )
     .reset_index()
 )
 
+product_perf["Avg_Margin"] = product_perf["Total_Profit"] / product_perf["Total_Sales"]
 product_perf["Profit per Unit"] = product_perf["Total_Profit"] / product_perf["Total_Units"]
 
 total_sales = product_perf["Total_Sales"].sum()
@@ -208,6 +203,7 @@ def classify(row):
 product_perf["Category"] = product_perf.apply(classify, axis=1)
 
 filtered_df["Month"] = filtered_df["Order Date"].dt.to_period("M")
+
 volatility = (
     filtered_df.groupby(["Product Name", "Month"])["Gross Margin %"]
     .mean()
@@ -227,9 +223,22 @@ def executive_page():
     col1, col2, col3 = st.columns(3)
     col1.metric("Total Revenue", f"${total_sales:,.0f}")
     col2.metric("Total Profit", f"${total_profit:,.0f}")
-    col3.metric("Average Margin", f"{filtered_df['Gross Margin %'].mean()*100:.2f}%")
+    col3.metric("True Average Margin", f"{(total_profit/total_sales)*100:.2f}%")
 
     st.markdown("---")
+
+    monthly = filtered_df.groupby("Month").agg(
+        Revenue=("Sales", "sum"),
+        Profit=("Gross Profit", "sum")
+    ).reset_index()
+
+    monthly["Margin %"] = monthly["Profit"] / monthly["Revenue"]
+    monthly["Month"] = monthly["Month"].astype(str)
+
+    fig_trend = px.line(monthly, x="Month", y="Margin %",
+                        title="Monthly Margin Trend",
+                        template="plotly_dark")
+    st.plotly_chart(fig_trend, use_container_width=True)
 
     top10 = product_perf.sort_values("Total_Profit", ascending=False).head(10)
     fig = px.bar(top10, x="Total_Profit", y="Product Name",
@@ -253,9 +262,10 @@ def division_page():
 
     division_perf = product_perf.groupby("Division").agg(
         Revenue=("Total_Sales", "sum"),
-        Profit=("Total_Profit", "sum"),
-        Avg_Margin=("Avg_Margin", "mean")
+        Profit=("Total_Profit", "sum")
     ).reset_index()
+
+    division_perf["True Margin"] = division_perf["Profit"] / division_perf["Revenue"]
 
     fig = px.bar(division_perf, x="Division",
                  y=["Revenue", "Profit"],
@@ -299,7 +309,7 @@ def pareto_page():
 
     st.plotly_chart(fig, use_container_width=True)
 
-    count_80 = pareto[pareto["Cumulative %"] <= 80].shape[0]
+    count_80 = pareto[pareto["Cumulative %"] >= 80].index.min() + 1
     st.info(f"{count_80} products contribute to 80% of total profit.")
 
 def factory_map_page():
@@ -312,12 +322,13 @@ def factory_map_page():
 
     map_data["Latitude"] = map_data["Factory"].map(lambda x: factory_coords[x][0])
     map_data["Longitude"] = map_data["Factory"].map(lambda x: factory_coords[x][1])
+    map_data["True Margin"] = map_data["Profit"] / map_data["Revenue"]
 
     fig = px.scatter_mapbox(map_data,
                             lat="Latitude",
                             lon="Longitude",
                             size="Revenue",
-                            color="Profit",
+                            color="True Margin",
                             hover_name="Factory",
                             zoom=3,
                             mapbox_style="carto-darkmatter")
@@ -327,19 +338,21 @@ def factory_map_page():
 def recommendation_page():
     st.title("Strategic Recommendations")
 
-    low_margin = product_perf[product_perf["Avg_Margin"] < 0.15]
-    high_volatility = product_perf[
-        product_perf["Margin Volatility"] > product_perf["Margin Volatility"].median()
-    ]
+    bottom_10_count = max(1, int(len(product_perf) * 0.1))
+    low_margin = product_perf.sort_values("Avg_Margin").head(bottom_10_count)
 
-    st.subheader("Low Margin Products (<15%)")
+    improved_profit = total_profit - low_margin["Total_Profit"].sum()
+    improved_sales = total_sales - low_margin["Total_Sales"].sum()
+    improved_margin = improved_profit / improved_sales
+
+    st.write("If bottom 10% margin products are discontinued:")
+    st.success(f"Projected Margin Improves To: {improved_margin*100:.2f}%")
+
+    st.subheader("Bottom 10% Margin Products")
     st.dataframe(low_margin)
 
-    st.subheader("High Margin Volatility Products")
-    st.dataframe(high_volatility)
-
 # ------------------------------------------------
-# FOOTER (EXACTLY YOUR VERSION)
+# FOOTER (YOUR ORIGINAL VERSION)
 # ------------------------------------------------
 def add_footer():
     try:
