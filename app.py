@@ -27,13 +27,13 @@ st.markdown("""
     display:flex;
     justify-content:center;
     align-items:center;
-  margin-top:-10px;
+  margin-top:-15px;
     border-bottom:1px solid #222;
-    margin-bottom:25px;
+    margin-bottom:2rem;
 }
 
 .company-logo {
-    max-width:10rem;
+    min-width:10rem;
     height:4rem;
     
 }
