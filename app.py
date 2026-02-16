@@ -22,7 +22,7 @@ st.set_page_config(
 st.markdown("""
 <style>
 .block-container {
-    padding-top: 1.5rem;
+    
     padding-left: 3rem;
     padding-right: 3rem;
     
@@ -39,8 +39,9 @@ st.markdown("""
 }
 
 .company-logo {
-    max-width:6rem;
-    height:2rem;
+padding-top: 1.5rem;
+    max-width:10rem;
+    height:6rem;
     object-fit:contain;
 }
 </style>
