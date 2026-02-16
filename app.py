@@ -56,24 +56,17 @@ add_company_header()
 # ------------------------------------------------
 @st.cache_data(show_spinner=False)
 def load_data():
-
     df = pd.read_csv("Nassau Candy Distributor (1).csv")
-
     df = df.drop_duplicates(subset=["Order ID", "Product ID"])
     df = df[(df["Sales"] > 0) & (df["Units"] > 0)]
     df = df.dropna(subset=["Sales", "Units", "Gross Profit", "Cost"])
-
     df["Division"] = df["Division"].str.strip()
     df["Product Name"] = df["Product Name"].str.strip()
-
     df["Order Date"] = pd.to_datetime(df["Order Date"], errors="coerce")
-
     df["Gross Margin %"] = df["Gross Profit"] / df["Sales"]
     df["Profit per Unit"] = df["Gross Profit"] / df["Units"]
-
     df["Calculated Profit"] = df["Sales"] - df["Cost"]
     df["Profit Mismatch"] = df["Gross Profit"] - df["Calculated Profit"]
-
     return df
 
 df = load_data()
@@ -110,30 +103,38 @@ factory_coords = {
 df["Factory"] = df["Product Name"].map(factory_map)
 
 # ------------------------------------------------
-# SIDEBAR
+# EXECUTIVE-GRADE SIDEBAR
 # ------------------------------------------------
-st.sidebar.title("🔎 Filters")
+st.sidebar.header("Analysis Controls")
 
+st.sidebar.markdown(
+    "Refine your dashboard using these controls. Focus on key products, divisions, and time periods."
+)
+
+# Date & Scope
+st.sidebar.subheader("Date & Scope")
+date_range = st.sidebar.date_input(
+    "Order Date Range",
+    value=(df["Order Date"].min(), df["Order Date"].max())
+)
 division_filter = st.sidebar.multiselect(
     "Division",
     df["Division"].unique(),
     default=df["Division"].unique()
 )
 
-product_search = st.sidebar.text_input("Search Product")
-
-date_range = st.sidebar.date_input(
-    "Order Date Range",
-    value=(df["Order Date"].min(), df["Order Date"].max())
-)
-
+# Product Controls
+st.sidebar.subheader("Product Controls")
+product_search = st.sidebar.text_input("Product Name Search")
 margin_threshold = st.sidebar.slider(
-    "Minimum Gross Margin (%)",
+    "Margin Filter Threshold (%)",
     0, 100, 0
 )
 
+# Navigation
+st.sidebar.subheader("Dashboard Module")
 page = st.sidebar.radio(
-    "Select Page",
+    "",
     [
         "Executive Intelligence",
         "Product Portfolio Analysis",
@@ -165,7 +166,7 @@ if filtered_df.empty:
     st.stop()
 
 # ------------------------------------------------
-# AGGREGATION (FIXED MARGIN LOGIC)
+# AGGREGATION
 # ------------------------------------------------
 product_perf = (
     filtered_df
@@ -219,19 +220,16 @@ product_perf = product_perf.merge(volatility, on="Product Name", how="left")
 # ------------------------------------------------
 def executive_page():
     st.title("Executive Profit Intelligence")
-
     col1, col2, col3 = st.columns(3)
     col1.metric("Total Revenue", f"${total_sales:,.0f}")
     col2.metric("Total Profit", f"${total_profit:,.0f}")
     col3.metric("True Average Margin", f"{(total_profit/total_sales)*100:.2f}%")
-
     st.markdown("---")
 
     monthly = filtered_df.groupby("Month").agg(
         Revenue=("Sales", "sum"),
         Profit=("Gross Profit", "sum")
     ).reset_index()
-
     monthly["Margin %"] = monthly["Profit"] / monthly["Revenue"]
     monthly["Month"] = monthly["Month"].astype(str)
 
@@ -259,32 +257,26 @@ def product_portfolio_page():
 
 def division_page():
     st.title("Division Performance")
-
     division_perf = product_perf.groupby("Division").agg(
         Revenue=("Total_Sales", "sum"),
         Profit=("Total_Profit", "sum")
     ).reset_index()
-
     division_perf["True Margin"] = division_perf["Profit"] / division_perf["Revenue"]
-
     fig = px.bar(division_perf, x="Division",
                  y=["Revenue", "Profit"],
                  barmode="group",
                  template="plotly_dark")
     st.plotly_chart(fig, use_container_width=True)
-
     st.dataframe(division_perf)
 
 def cost_margin_page():
     st.title("Cost & Margin Diagnostics")
-
     fig1 = px.scatter(filtered_df,
                       x="Cost",
                       y="Sales",
                       color="Division",
                       template="plotly_dark")
     st.plotly_chart(fig1, use_container_width=True)
-
     fig2 = px.scatter(filtered_df,
                       x="Cost",
                       y="Gross Margin %",
@@ -294,36 +286,28 @@ def cost_margin_page():
 
 def pareto_page():
     st.title("Profit Concentration (Pareto)")
-
     pareto = product_perf.sort_values("Total_Profit", ascending=False)
     pareto["Cumulative %"] = pareto["Total_Profit"].cumsum() / total_profit * 100
-
     fig = go.Figure()
     fig.add_bar(x=pareto["Product Name"], y=pareto["Total_Profit"], name="Profit")
     fig.add_scatter(x=pareto["Product Name"], y=pareto["Cumulative %"],
                     name="Cumulative %",
                     yaxis="y2")
-
     fig.update_layout(yaxis2=dict(overlaying='y', side='right'),
                       template="plotly_dark")
-
     st.plotly_chart(fig, use_container_width=True)
-
     count_80 = pareto[pareto["Cumulative %"] >= 80].index.min() + 1
     st.info(f"{count_80} products contribute to 80% of total profit.")
 
 def factory_map_page():
     st.title("Factory-Product Geographic Map")
-
     map_data = product_perf.groupby("Factory").agg(
         Revenue=("Total_Sales", "sum"),
         Profit=("Total_Profit", "sum")
     ).reset_index()
-
     map_data["Latitude"] = map_data["Factory"].map(lambda x: factory_coords[x][0])
     map_data["Longitude"] = map_data["Factory"].map(lambda x: factory_coords[x][1])
     map_data["True Margin"] = map_data["Profit"] / map_data["Revenue"]
-
     fig = px.scatter_mapbox(map_data,
                             lat="Latitude",
                             lon="Longitude",
@@ -332,27 +316,22 @@ def factory_map_page():
                             hover_name="Factory",
                             zoom=3,
                             mapbox_style="carto-darkmatter")
-
     st.plotly_chart(fig, use_container_width=True)
 
 def recommendation_page():
     st.title("Strategic Recommendations")
-
     bottom_10_count = max(1, int(len(product_perf) * 0.1))
     low_margin = product_perf.sort_values("Avg_Margin").head(bottom_10_count)
-
     improved_profit = total_profit - low_margin["Total_Profit"].sum()
     improved_sales = total_sales - low_margin["Total_Sales"].sum()
     improved_margin = improved_profit / improved_sales
-
     st.write("If bottom 10% margin products are discontinued:")
     st.success(f"Projected Margin Improves To: {improved_margin*100:.2f}%")
-
     st.subheader("Bottom 10% Margin Products")
     st.dataframe(low_margin)
 
 # ------------------------------------------------
-# FOOTER (YOUR ORIGINAL VERSION)
+# FOOTER (EXACTLY ORIGINAL)
 # ------------------------------------------------
 def add_footer():
     try:
