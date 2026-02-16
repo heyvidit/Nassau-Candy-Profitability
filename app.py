@@ -39,9 +39,9 @@ except:
     logo = None
 
 # ------------------------------------------------
-# EXECUTIVE HEADER (Preserved & Polished)
+# DISPLAY LOGO + TITLE (already works on all pages)
 # ------------------------------------------------
-col1, col2 = st.columns([1, 6])
+col1, col2 = st.columns([1,6])
 with col1:
     if logo:
         st.image(logo, width=120)
@@ -62,7 +62,6 @@ def load_data():
 
     df["Division"] = df["Division"].str.strip()
     df["Product Name"] = df["Product Name"].str.strip()
-
     df["Order Date"] = pd.to_datetime(df["Order Date"], errors="coerce")
 
     df["Gross Margin %"] = df["Gross Profit"] / df["Sales"]
@@ -231,7 +230,7 @@ volatility = (
 product_perf = product_perf.merge(volatility, on="Product Name", how="left")
 
 # ------------------------------------------------
-# PAGES (ALL PRESERVED)
+# PAGE FUNCTIONS
 # ------------------------------------------------
 def executive_page():
     st.title("Executive Profit Intelligence")
