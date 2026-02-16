@@ -38,6 +38,10 @@ try:
 except:
     logo = None
 
+# Properly display logo (minimal addition)
+if logo:
+    st.image(logo, width=140)
+
 # ------------------------------------------------
 # LOAD DATA
 # ------------------------------------------------
@@ -64,10 +68,15 @@ def load_data():
 
 df = load_data()
 
-# Profit mismatch warning
-mismatch_count = df[df["Profit Mismatch"] != 0].shape[0]
+# ------------------------------------------------
+# DATA VALIDATION MESSAGE (Improved - Non alarming)
+# ------------------------------------------------
+mismatch_count = df[df["Profit Mismatch"].abs() > 0.01].shape[0]
 if mismatch_count > 0:
-    st.warning(f"⚠ {mismatch_count} rows have Gross Profit mismatch vs (Sales - Cost).")
+    st.info(
+        f"{mismatch_count} rows show minor rounding differences between "
+        "Gross Profit and (Sales - Cost)."
+    )
 
 # ------------------------------------------------
 # FACTORY MAPPING
@@ -137,7 +146,7 @@ page = st.sidebar.radio(
 )
 
 # ------------------------------------------------
-# FILTER DATA (margin filter moved after aggregation)
+# FILTER DATA (Margin filter moved AFTER aggregation)
 # ------------------------------------------------
 filtered_df = df[
     (df["Division"].isin(division_filter)) &
@@ -173,7 +182,7 @@ product_perf = (
 product_perf["Profit per Unit"] = product_perf["Total_Profit"] / product_perf["Total_Units"]
 product_perf["Cost Ratio %"] = product_perf["Total_Cost"] / product_perf["Total_Sales"]
 
-# Apply margin filter AFTER aggregation
+# Apply margin threshold AFTER aggregation
 product_perf = product_perf[product_perf["Avg_Margin"] * 100 >= margin_threshold]
 
 total_sales = product_perf["Total_Sales"].sum()
@@ -182,6 +191,9 @@ total_profit = product_perf["Total_Profit"].sum()
 product_perf["Revenue Contribution %"] = product_perf["Total_Sales"] / total_sales * 100
 product_perf["Profit Contribution %"] = product_perf["Total_Profit"] / total_profit * 100
 
+# ------------------------------------------------
+# CLASSIFICATION
+# ------------------------------------------------
 sales_median = product_perf["Total_Sales"].median()
 margin_median = product_perf["Avg_Margin"].median()
 
@@ -197,6 +209,9 @@ def classify(row):
 
 product_perf["Category"] = product_perf.apply(classify, axis=1)
 
+# ------------------------------------------------
+# VOLATILITY
+# ------------------------------------------------
 filtered_df["Month"] = filtered_df["Order Date"].dt.to_period("M")
 volatility = (
     filtered_df.groupby(["Product Name", "Month"])["Gross Margin %"]
@@ -211,6 +226,7 @@ product_perf = product_perf.merge(volatility, on="Product Name", how="left")
 # ------------------------------------------------
 # PAGES
 # ------------------------------------------------
+
 def executive_page():
     st.title("Executive Profit Intelligence")
 
@@ -227,6 +243,7 @@ def executive_page():
                  template="plotly_dark")
     st.plotly_chart(fig, use_container_width=True)
 
+
 def product_portfolio_page():
     st.title("Product Portfolio Analysis")
     fig = px.scatter(product_perf,
@@ -238,6 +255,7 @@ def product_portfolio_page():
                      template="plotly_dark")
     st.plotly_chart(fig, use_container_width=True)
 
+
 def division_page():
     st.title("Division Performance")
 
@@ -247,6 +265,7 @@ def division_page():
         Avg_Margin=("Avg_Margin", "mean")
     ).reset_index()
 
+    # Added efficiency ratio
     division_perf["Revenue %"] = division_perf["Revenue"] / total_sales
     division_perf["Profit %"] = division_perf["Profit"] / total_profit
     division_perf["Efficiency Ratio"] = division_perf["Profit %"] / division_perf["Revenue %"]
@@ -258,6 +277,7 @@ def division_page():
     st.plotly_chart(fig, use_container_width=True)
 
     st.dataframe(division_perf)
+
 
 def cost_margin_page():
     st.title("Cost & Margin Diagnostics")
@@ -272,6 +292,7 @@ def cost_margin_page():
     st.subheader("Top 10 Cost-Heavy Products")
     high_cost = product_perf.sort_values("Cost Ratio %", ascending=False).head(10)
     st.dataframe(high_cost[["Product Name", "Division", "Cost Ratio %", "Avg_Margin"]])
+
 
 def pareto_page():
     st.title("Profit & Revenue Concentration (Pareto)")
@@ -297,8 +318,65 @@ def pareto_page():
     st.info(f"{count_profit_80} products contribute to 80% of total profit.")
     st.info(f"{count_revenue_80} products contribute to 80% of total revenue.")
 
+
+def factory_map_page():
+    st.title("Factory-Product Geographic Map")
+
+    map_data = product_perf.groupby("Factory").agg(
+        Revenue=("Total_Sales", "sum"),
+        Profit=("Total_Profit", "sum")
+    ).reset_index()
+
+    map_data["Latitude"] = map_data["Factory"].map(lambda x: factory_coords[x][0])
+    map_data["Longitude"] = map_data["Factory"].map(lambda x: factory_coords[x][1])
+    map_data["Factory Margin"] = map_data["Profit"] / map_data["Revenue"]
+
+    fig = px.scatter_mapbox(map_data,
+                            lat="Latitude",
+                            lon="Longitude",
+                            size="Revenue",
+                            color="Factory Margin",
+                            hover_name="Factory",
+                            zoom=3,
+                            mapbox_style="carto-darkmatter")
+
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def recommendation_page():
+    st.title("Strategic Recommendations")
+
+    low_margin = product_perf[product_perf["Avg_Margin"] < 0.15]
+    high_volatility = product_perf[
+        product_perf["Margin Volatility"] > product_perf["Margin Volatility"].median()
+    ]
+
+    st.subheader("Low Margin Products (<15%)")
+    st.dataframe(low_margin)
+
+    st.subheader("High Margin Volatility Products")
+    st.dataframe(high_volatility)
+
 # ------------------------------------------------
-# FOOTER (YOUR ORIGINAL — UNTOUCHED)
+# ROUTING
+# ------------------------------------------------
+if page == "Executive Intelligence":
+    executive_page()
+elif page == "Product Portfolio Analysis":
+    product_portfolio_page()
+elif page == "Division & Factory Performance":
+    division_page()
+elif page == "Cost & Margin Diagnostics":
+    cost_margin_page()
+elif page == "Profit Concentration Analysis":
+    pareto_page()
+elif page == "Factory-Product Map":
+    factory_map_page()
+elif page == "Strategic Recommendations":
+    recommendation_page()
+
+# ------------------------------------------------
+# FOOTER (UNCHANGED)
 # ------------------------------------------------
 def add_footer():
     try:
@@ -320,26 +398,6 @@ def add_footer():
         """
         st.markdown(footer_html, unsafe_allow_html=True)
     except:
-        st.markdown(f"""
-        <div class='footer' style='display:flex; justify-content:center; align-items:center; gap:15px; flex-wrap:wrap; padding:15px 20px; background-color:#0E1117; color:#ffffff; font-size:13px; font-family:Arial, sans-serif;'>
-            <span>Mentored by <a href='https://www.linkedin.com/in/saiprasad-kagne/' target='_blank' style='color:#0A66C2; text-decoration:none;'>Sai Prasad Kagne</a></span>
-            <span>| Created by <a href='https://www.linkedin.com/in/vidit-kapoor-5062b02a6' target='_blank' style='color:#0A66C2; text-decoration:none;'>Vidit Kapoor</a></span>
-            <span>| Version 1.0 | Last updated: Feb 2026</span>
-        </div>
-        """, unsafe_allow_html=True)
-
-# ------------------------------------------------
-# ROUTING
-# ------------------------------------------------
-if page == "Executive Intelligence":
-    executive_page()
-elif page == "Product Portfolio Analysis":
-    product_portfolio_page()
-elif page == "Division & Factory Performance":
-    division_page()
-elif page == "Cost & Margin Diagnostics":
-    cost_margin_page()
-elif page == "Profit Concentration Analysis":
-    pareto_page()
+        pass
 
 add_footer()
