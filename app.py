@@ -17,32 +17,57 @@ st.set_page_config(
 )
 
 # ------------------------------------------------
-# GLOBAL STYLE
+# GLOBAL STYLE + COMPANY HEADER
 # ------------------------------------------------
 st.markdown("""
 <style>
 .block-container {
-    padding-top: 2rem;
+    padding-top: 1.5rem;
     padding-left: 3rem;
     padding-right: 3rem;
     max-width: 1400px;
 }
+
+.company-header {
+    width:100%;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:15px 0;
+    border-bottom:1px solid #222;
+    margin-bottom:25px;
+}
+
+.company-logo {
+    max-width:240px;
+    height:auto;
+    object-fit:contain;
+}
 </style>
 """, unsafe_allow_html=True)
 
-# ------------------------------------------------
-# LOAD LOGO
-# ------------------------------------------------
-try:
-    logo = Image.open("logo.png")
-except:
-    logo = None
+def add_company_header():
+    try:
+        with open("logo.png", "rb") as f:
+            encoded_logo = base64.b64encode(f.read()).decode()
+
+        header_html = f"""
+        <div class="company-header">
+            <img src="data:image/png;base64,{encoded_logo}" class="company-logo">
+        </div>
+        """
+        st.markdown(header_html, unsafe_allow_html=True)
+    except:
+        pass
+
+add_company_header()
 
 # ------------------------------------------------
 # LOAD DATA
 # ------------------------------------------------
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def load_data():
+
     df = pd.read_csv("Nassau Candy Distributor (1).csv")
 
     df = df.drop_duplicates(subset=["Order ID", "Product ID"])
@@ -320,7 +345,7 @@ def recommendation_page():
     st.dataframe(high_volatility)
 
 # ------------------------------------------------
-# FOOTER (RESTORED EXACTLY)
+# FOOTER (EXACTLY YOUR VERSION)
 # ------------------------------------------------
 def add_footer():
     try:
@@ -342,13 +367,7 @@ def add_footer():
         """
         st.markdown(footer_html, unsafe_allow_html=True)
     except:
-        st.markdown(f"""
-        <div class='footer' style='display:flex; justify-content:center; align-items:center; gap:15px; flex-wrap:wrap; padding:15px 20px; background-color:#0E1117; color:#ffffff; font-size:13px; font-family:Arial, sans-serif;'>
-            <span>Mentored by <a href='https://www.linkedin.com/in/saiprasad-kagne/' target='_blank' style='color:#0A66C2; text-decoration:none;'>Sai Prasad Kagne</a></span>
-            <span>| Created by <a href='https://www.linkedin.com/in/vidit-kapoor-5062b02a6' target='_blank' style='color:#0A66C2; text-decoration:none;'>Vidit Kapoor</a></span>
-            <span>| Version 1.0 | Last updated: Feb 2026</span>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown("Footer Error")
 
 # ------------------------------------------------
 # ROUTING
