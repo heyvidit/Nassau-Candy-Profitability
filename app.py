@@ -64,6 +64,11 @@ def load_data():
 
 df = load_data()
 
+# Profit mismatch warning
+mismatch_count = df[df["Profit Mismatch"] != 0].shape[0]
+if mismatch_count > 0:
+    st.warning(f"⚠ {mismatch_count} rows have Gross Profit mismatch vs (Sales - Cost).")
+
 # ------------------------------------------------
 # FACTORY MAPPING
 # ------------------------------------------------
@@ -132,13 +137,12 @@ page = st.sidebar.radio(
 )
 
 # ------------------------------------------------
-# FILTER DATA
+# FILTER DATA (margin filter moved after aggregation)
 # ------------------------------------------------
 filtered_df = df[
     (df["Division"].isin(division_filter)) &
     (df["Order Date"] >= pd.to_datetime(date_range[0])) &
-    (df["Order Date"] <= pd.to_datetime(date_range[1])) &
-    (df["Gross Margin %"] * 100 >= margin_threshold)
+    (df["Order Date"] <= pd.to_datetime(date_range[1]))
 ].copy()
 
 if product_search:
@@ -160,12 +164,17 @@ product_perf = (
         Total_Sales=("Sales", "sum"),
         Total_Profit=("Gross Profit", "sum"),
         Total_Units=("Units", "sum"),
-        Avg_Margin=("Gross Margin %", "mean")
+        Avg_Margin=("Gross Margin %", "mean"),
+        Total_Cost=("Cost", "sum")
     )
     .reset_index()
 )
 
 product_perf["Profit per Unit"] = product_perf["Total_Profit"] / product_perf["Total_Units"]
+product_perf["Cost Ratio %"] = product_perf["Total_Cost"] / product_perf["Total_Sales"]
+
+# Apply margin filter AFTER aggregation
+product_perf = product_perf[product_perf["Avg_Margin"] * 100 >= margin_threshold]
 
 total_sales = product_perf["Total_Sales"].sum()
 total_profit = product_perf["Total_Profit"].sum()
@@ -208,7 +217,7 @@ def executive_page():
     col1, col2, col3 = st.columns(3)
     col1.metric("Total Revenue", f"${total_sales:,.0f}")
     col2.metric("Total Profit", f"${total_profit:,.0f}")
-    col3.metric("Average Margin", f"{filtered_df['Gross Margin %'].mean()*100:.2f}%")
+    col3.metric("Average Margin", f"{product_perf['Avg_Margin'].mean()*100:.2f}%")
 
     st.markdown("---")
 
@@ -238,6 +247,10 @@ def division_page():
         Avg_Margin=("Avg_Margin", "mean")
     ).reset_index()
 
+    division_perf["Revenue %"] = division_perf["Revenue"] / total_sales
+    division_perf["Profit %"] = division_perf["Profit"] / total_profit
+    division_perf["Efficiency Ratio"] = division_perf["Profit %"] / division_perf["Revenue %"]
+
     fig = px.bar(division_perf, x="Division",
                  y=["Revenue", "Profit"],
                  barmode="group",
@@ -249,30 +262,28 @@ def division_page():
 def cost_margin_page():
     st.title("Cost & Margin Diagnostics")
 
-    fig1 = px.scatter(filtered_df,
-                      x="Cost",
-                      y="Sales",
-                      color="Division",
-                      template="plotly_dark")
-    st.plotly_chart(fig1, use_container_width=True)
+    fig = px.scatter(product_perf,
+                     x="Total_Cost",
+                     y="Total_Sales",
+                     color="Division",
+                     template="plotly_dark")
+    st.plotly_chart(fig, use_container_width=True)
 
-    fig2 = px.scatter(filtered_df,
-                      x="Cost",
-                      y="Gross Margin %",
-                      color="Division",
-                      template="plotly_dark")
-    st.plotly_chart(fig2, use_container_width=True)
+    st.subheader("Top 10 Cost-Heavy Products")
+    high_cost = product_perf.sort_values("Cost Ratio %", ascending=False).head(10)
+    st.dataframe(high_cost[["Product Name", "Division", "Cost Ratio %", "Avg_Margin"]])
 
 def pareto_page():
-    st.title("Profit Concentration (Pareto)")
+    st.title("Profit & Revenue Concentration (Pareto)")
 
-    pareto = product_perf.sort_values("Total_Profit", ascending=False)
-    pareto["Cumulative %"] = pareto["Total_Profit"].cumsum() / total_profit * 100
+    pareto = product_perf.sort_values("Total_Profit", ascending=False).copy()
+    pareto["Profit Cumulative %"] = pareto["Total_Profit"].cumsum() / total_profit * 100
+    pareto["Revenue Cumulative %"] = pareto["Total_Sales"].cumsum() / total_sales * 100
 
     fig = go.Figure()
     fig.add_bar(x=pareto["Product Name"], y=pareto["Total_Profit"], name="Profit")
-    fig.add_scatter(x=pareto["Product Name"], y=pareto["Cumulative %"],
-                    name="Cumulative %",
+    fig.add_scatter(x=pareto["Product Name"], y=pareto["Profit Cumulative %"],
+                    name="Profit Cumulative %",
                     yaxis="y2")
 
     fig.update_layout(yaxis2=dict(overlaying='y', side='right'),
@@ -280,47 +291,14 @@ def pareto_page():
 
     st.plotly_chart(fig, use_container_width=True)
 
-    count_80 = pareto[pareto["Cumulative %"] <= 80].shape[0]
-    st.info(f"{count_80} products contribute to 80% of total profit.")
+    count_profit_80 = pareto[pareto["Profit Cumulative %"] <= 80].shape[0]
+    count_revenue_80 = pareto[pareto["Revenue Cumulative %"] <= 80].shape[0]
 
-def factory_map_page():
-    st.title("Factory-Product Geographic Map")
-
-    map_data = product_perf.groupby("Factory").agg(
-        Revenue=("Total_Sales", "sum"),
-        Profit=("Total_Profit", "sum")
-    ).reset_index()
-
-    map_data["Latitude"] = map_data["Factory"].map(lambda x: factory_coords[x][0])
-    map_data["Longitude"] = map_data["Factory"].map(lambda x: factory_coords[x][1])
-
-    fig = px.scatter_mapbox(map_data,
-                            lat="Latitude",
-                            lon="Longitude",
-                            size="Revenue",
-                            color="Profit",
-                            hover_name="Factory",
-                            zoom=3,
-                            mapbox_style="carto-darkmatter")
-
-    st.plotly_chart(fig, use_container_width=True)
-
-def recommendation_page():
-    st.title("Strategic Recommendations")
-
-    low_margin = product_perf[product_perf["Avg_Margin"] < 0.15]
-    high_volatility = product_perf[
-        product_perf["Margin Volatility"] > product_perf["Margin Volatility"].median()
-    ]
-
-    st.subheader("Low Margin Products (<15%)")
-    st.dataframe(low_margin)
-
-    st.subheader("High Margin Volatility Products")
-    st.dataframe(high_volatility)
+    st.info(f"{count_profit_80} products contribute to 80% of total profit.")
+    st.info(f"{count_revenue_80} products contribute to 80% of total revenue.")
 
 # ------------------------------------------------
-# FOOTER (RESTORED EXACTLY)
+# FOOTER (YOUR ORIGINAL — UNTOUCHED)
 # ------------------------------------------------
 def add_footer():
     try:
@@ -363,9 +341,5 @@ elif page == "Cost & Margin Diagnostics":
     cost_margin_page()
 elif page == "Profit Concentration Analysis":
     pareto_page()
-elif page == "Factory-Product Map":
-    factory_map_page()
-elif page == "Strategic Recommendations":
-    recommendation_page()
 
 add_footer()
