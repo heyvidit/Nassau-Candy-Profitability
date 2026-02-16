@@ -27,14 +27,14 @@ st.markdown("""
     display:flex;
     justify-content:center;
     align-items:center;
-  margin-top:2px;
+  margin-top:-10px;
     border-bottom:1px solid #222;
     margin-bottom:25px;
 }
 
 .company-logo {
     max-width:10rem;
-    height:6rem;
+    height:4rem;
     
 }
 </style>
