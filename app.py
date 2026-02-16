@@ -25,7 +25,7 @@ st.markdown("""
     padding-top: 1.5rem;
     padding-left: 3rem;
     padding-right: 3rem;
-    max-width: 1400px;
+    
 }
 
 .company-header {
@@ -40,7 +40,7 @@ st.markdown("""
 
 .company-logo {
     max-width:6rem;
-    height:auto;
+    height:2rem;
     object-fit:contain;
 }
 </style>
