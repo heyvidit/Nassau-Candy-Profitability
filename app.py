@@ -116,7 +116,7 @@ st.sidebar.markdown(
     """
     <style>
     .stDateInput > div[data-baseweb="select"] > div:first-child {
-        max-height: 250px;
+        max-height: 200px;
         overflow-y: auto;
     }
     </style>
