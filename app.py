@@ -111,6 +111,19 @@ st.sidebar.markdown(
     "Refine your dashboard using these controls. Focus on key products, divisions, and time periods."
 )
 
+# Reduce calendar height
+st.sidebar.markdown(
+    """
+    <style>
+    .stDateInput > div[data-baseweb="select"] > div:first-child {
+        max-height: 250px;
+        overflow-y: auto;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 # Date & Scope
 st.sidebar.subheader("Date & Scope")
 date_range = st.sidebar.date_input(
@@ -125,7 +138,30 @@ division_filter = st.sidebar.multiselect(
 
 # Product Controls
 st.sidebar.subheader("Product Controls")
-product_search = st.sidebar.text_input("Product Name Search")
+all_products = [
+    "Wonka Bar - Nutty Crunch Surprise",
+    "Wonka Bar - Fudge Mallows",
+    "Wonka Bar - Scrumdiddlyumptious",
+    "Wonka Bar - Milk Chocolate",
+    "Wonka Bar - Triple Dazzle Caramel",
+    "Laffy Taffy",
+    "SweeTARTS",
+    "Nerds",
+    "Fun Dip",
+    "Fizzy Lifting Drinks",
+    "Everlasting Gobstopper",
+    "Hair Toffee",
+    "Lickable Wallpaper",
+    "Wonka Gum",
+    "Kazookles"
+]
+
+product_search = st.sidebar.multiselect(
+    "Select Products",
+    options=all_products,
+    default=[]
+)
+
 margin_threshold = st.sidebar.slider(
     "Margin Filter Threshold (%)",
     0, 100, 0
@@ -157,9 +193,7 @@ filtered_df = df[
 ].copy()
 
 if product_search:
-    filtered_df = filtered_df[
-        filtered_df["Product Name"].str.contains(product_search, case=False)
-    ]
+    filtered_df = filtered_df[filtered_df["Product Name"].isin(product_search)]
 
 if filtered_df.empty:
     st.warning("No data available for selected filters.")
@@ -216,7 +250,7 @@ volatility = (
 product_perf = product_perf.merge(volatility, on="Product Name", how="left")
 
 # ------------------------------------------------
-# PAGES
+# PAGES (Functions same as before)
 # ------------------------------------------------
 def executive_page():
     st.title("Executive Profit Intelligence")
@@ -331,7 +365,7 @@ def recommendation_page():
     st.dataframe(low_margin)
 
 # ------------------------------------------------
-# FOOTER (EXACTLY ORIGINAL)
+# FOOTER (Original)
 # ------------------------------------------------
 def add_footer():
     try:
