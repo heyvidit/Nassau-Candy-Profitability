@@ -27,7 +27,7 @@ st.markdown("""
     display:flex;
     justify-content:center;
     align-items:center;
-  margin-top:2px
+  margin-top:2px;
     border-bottom:1px solid #222;
     margin-bottom:25px;
 }
