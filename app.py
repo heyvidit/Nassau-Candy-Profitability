@@ -116,12 +116,14 @@ st.sidebar.markdown(
     """
     <style>
     .stDateInput > div[data-baseweb="select"] > div:first-child {
-        min-height: 7rem;
+        max-height: 7rem;  /* limit height */
+        overflow-y: auto;  /* scrollbar if content overflows */
     }
     </style>
     """,
     unsafe_allow_html=True
 )
+
 
 # Date & Scope
 st.sidebar.subheader("Date & Scope")
