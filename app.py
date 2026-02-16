@@ -23,11 +23,20 @@ st.markdown("""
 <style>
 
 
-.company-logo {
-    min-width:10rem;
-    height:4rem;
-    padding-right:4rem
+.company-header {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 0;
+    margin-bottom: 2rem;
 }
+
+.company-logo {
+    height: 4rem;
+    width: auto;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
