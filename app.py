@@ -369,4 +369,3 @@ elif page == "Strategic Recommendations":
     recommendation_page()
 
 add_footer()
-this is my work
