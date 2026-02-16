@@ -26,7 +26,7 @@ st.markdown("""
 .company-logo {
     min-width:10rem;
     height:4rem;
-    justify-content:center;
+    padding-right:4rem
 }
 </style>
 """, unsafe_allow_html=True)
