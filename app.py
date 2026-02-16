@@ -38,9 +38,16 @@ try:
 except:
     logo = None
 
-# Properly display logo (minimal addition)
-if logo:
-    st.image(logo, width=140)
+# ------------------------------------------------
+# EXECUTIVE HEADER (Preserved & Polished)
+# ------------------------------------------------
+col1, col2 = st.columns([1, 6])
+with col1:
+    if logo:
+        st.image(logo, width=120)
+with col2:
+    st.markdown("<h1 style='margin-bottom:0;'>Profit Intelligence Dashboard</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='color:gray; margin-top:0;'>Nassau Candy Distributor</p>", unsafe_allow_html=True)
 
 # ------------------------------------------------
 # LOAD DATA
@@ -69,13 +76,13 @@ def load_data():
 df = load_data()
 
 # ------------------------------------------------
-# DATA VALIDATION MESSAGE (Improved - Non alarming)
+# DATA VALIDATION MESSAGE
 # ------------------------------------------------
 mismatch_count = df[df["Profit Mismatch"].abs() > 0.01].shape[0]
 if mismatch_count > 0:
     st.info(
-        f"{mismatch_count} rows show minor rounding differences between "
-        "Gross Profit and (Sales - Cost)."
+        f"{mismatch_count} rows show minor rounding differences "
+        "between Gross Profit and (Sales - Cost)."
     )
 
 # ------------------------------------------------
@@ -146,7 +153,7 @@ page = st.sidebar.radio(
 )
 
 # ------------------------------------------------
-# FILTER DATA (Margin filter moved AFTER aggregation)
+# FILTER DATA
 # ------------------------------------------------
 filtered_df = df[
     (df["Division"].isin(division_filter)) &
@@ -182,7 +189,7 @@ product_perf = (
 product_perf["Profit per Unit"] = product_perf["Total_Profit"] / product_perf["Total_Units"]
 product_perf["Cost Ratio %"] = product_perf["Total_Cost"] / product_perf["Total_Sales"]
 
-# Apply margin threshold AFTER aggregation
+# Apply margin threshold after aggregation
 product_perf = product_perf[product_perf["Avg_Margin"] * 100 >= margin_threshold]
 
 total_sales = product_perf["Total_Sales"].sum()
@@ -224,25 +231,19 @@ volatility = (
 product_perf = product_perf.merge(volatility, on="Product Name", how="left")
 
 # ------------------------------------------------
-# PAGES
+# PAGES (ALL PRESERVED)
 # ------------------------------------------------
-
 def executive_page():
     st.title("Executive Profit Intelligence")
-
     col1, col2, col3 = st.columns(3)
     col1.metric("Total Revenue", f"${total_sales:,.0f}")
     col2.metric("Total Profit", f"${total_profit:,.0f}")
     col3.metric("Average Margin", f"{product_perf['Avg_Margin'].mean()*100:.2f}%")
-
     st.markdown("---")
-
     top10 = product_perf.sort_values("Total_Profit", ascending=False).head(10)
     fig = px.bar(top10, x="Total_Profit", y="Product Name",
-                 orientation="h", color="Category",
-                 template="plotly_dark")
+                 orientation="h", color="Category", template="plotly_dark")
     st.plotly_chart(fig, use_container_width=True)
-
 
 def product_portfolio_page():
     st.title("Product Portfolio Analysis")
@@ -255,105 +256,72 @@ def product_portfolio_page():
                      template="plotly_dark")
     st.plotly_chart(fig, use_container_width=True)
 
-
 def division_page():
     st.title("Division Performance")
-
     division_perf = product_perf.groupby("Division").agg(
         Revenue=("Total_Sales", "sum"),
         Profit=("Total_Profit", "sum"),
         Avg_Margin=("Avg_Margin", "mean")
     ).reset_index()
-
-    # Added efficiency ratio
     division_perf["Revenue %"] = division_perf["Revenue"] / total_sales
     division_perf["Profit %"] = division_perf["Profit"] / total_profit
     division_perf["Efficiency Ratio"] = division_perf["Profit %"] / division_perf["Revenue %"]
-
     fig = px.bar(division_perf, x="Division",
                  y=["Revenue", "Profit"],
-                 barmode="group",
-                 template="plotly_dark")
+                 barmode="group", template="plotly_dark")
     st.plotly_chart(fig, use_container_width=True)
-
     st.dataframe(division_perf)
-
 
 def cost_margin_page():
     st.title("Cost & Margin Diagnostics")
-
     fig = px.scatter(product_perf,
                      x="Total_Cost",
                      y="Total_Sales",
                      color="Division",
                      template="plotly_dark")
     st.plotly_chart(fig, use_container_width=True)
-
     st.subheader("Top 10 Cost-Heavy Products")
     high_cost = product_perf.sort_values("Cost Ratio %", ascending=False).head(10)
     st.dataframe(high_cost[["Product Name", "Division", "Cost Ratio %", "Avg_Margin"]])
 
-
 def pareto_page():
     st.title("Profit & Revenue Concentration (Pareto)")
-
     pareto = product_perf.sort_values("Total_Profit", ascending=False).copy()
     pareto["Profit Cumulative %"] = pareto["Total_Profit"].cumsum() / total_profit * 100
     pareto["Revenue Cumulative %"] = pareto["Total_Sales"].cumsum() / total_sales * 100
-
     fig = go.Figure()
     fig.add_bar(x=pareto["Product Name"], y=pareto["Total_Profit"], name="Profit")
     fig.add_scatter(x=pareto["Product Name"], y=pareto["Profit Cumulative %"],
-                    name="Profit Cumulative %",
-                    yaxis="y2")
-
-    fig.update_layout(yaxis2=dict(overlaying='y', side='right'),
-                      template="plotly_dark")
-
+                    name="Profit Cumulative %", yaxis="y2")
+    fig.update_layout(yaxis2=dict(overlaying='y', side='right'), template="plotly_dark")
     st.plotly_chart(fig, use_container_width=True)
-
     count_profit_80 = pareto[pareto["Profit Cumulative %"] <= 80].shape[0]
     count_revenue_80 = pareto[pareto["Revenue Cumulative %"] <= 80].shape[0]
-
     st.info(f"{count_profit_80} products contribute to 80% of total profit.")
     st.info(f"{count_revenue_80} products contribute to 80% of total revenue.")
 
-
 def factory_map_page():
     st.title("Factory-Product Geographic Map")
-
     map_data = product_perf.groupby("Factory").agg(
         Revenue=("Total_Sales", "sum"),
         Profit=("Total_Profit", "sum")
     ).reset_index()
-
     map_data["Latitude"] = map_data["Factory"].map(lambda x: factory_coords[x][0])
     map_data["Longitude"] = map_data["Factory"].map(lambda x: factory_coords[x][1])
     map_data["Factory Margin"] = map_data["Profit"] / map_data["Revenue"]
-
     fig = px.scatter_mapbox(map_data,
-                            lat="Latitude",
-                            lon="Longitude",
-                            size="Revenue",
-                            color="Factory Margin",
-                            hover_name="Factory",
-                            zoom=3,
+                            lat="Latitude", lon="Longitude",
+                            size="Revenue", color="Factory Margin",
+                            hover_name="Factory", zoom=3,
                             mapbox_style="carto-darkmatter")
-
     st.plotly_chart(fig, use_container_width=True)
-
 
 def recommendation_page():
     st.title("Strategic Recommendations")
-
     low_margin = product_perf[product_perf["Avg_Margin"] < 0.15]
-    high_volatility = product_perf[
-        product_perf["Margin Volatility"] > product_perf["Margin Volatility"].median()
-    ]
-
+    high_volatility = product_perf[product_perf["Margin Volatility"] > product_perf["Margin Volatility"].median()]
     st.subheader("Low Margin Products (<15%)")
     st.dataframe(low_margin)
-
     st.subheader("High Margin Volatility Products")
     st.dataframe(high_volatility)
 
