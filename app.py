@@ -71,23 +71,19 @@ def load_data():
     df["Calculated Profit"] = df["Sales"] - df["Cost"]
     df["Profit Mismatch"] = df["Gross Profit"] - df["Calculated Profit"]
 
-    # Flag significant mismatches (>1% of sales)
     df["Mismatch Flag"] = np.where(
         np.abs(df["Profit Mismatch"]) > (0.01 * df["Sales"]),
         True, False
     )
 
-    # Remove negative profit
     df = df[df["Gross Profit"] >= 0]
     df = df[df["Ship Date"] >= df["Order Date"]]
 
-    # Metrics
     df["Gross Margin %"] = df["Gross Profit"] / df["Sales"]
     df["Profit per Unit"] = df["Gross Profit"] / df["Units"]
     df["Cost per Unit"] = df["Cost"] / df["Units"]
     df["Avg Selling Price"] = df["Sales"] / df["Units"]
 
-    # Safe Z-Score Calculation
     if df["Gross Margin %"].std() != 0:
         df["Margin Z-Score"] = np.abs(stats.zscore(df["Gross Margin %"]))
     else:
@@ -100,12 +96,36 @@ def load_data():
 df = load_data()
 
 # ------------------------------------------------
-# FACTORY MAPPING (PRESERVED)
+# FACTORY MAPPING (FULLY RESTORED)
 # ------------------------------------------------
-factory_map = { ... }  # KEEP YOUR ORIGINAL MAPPING
-factory_coords = { ... }
+factory_map = {
+    "Wonka Bar - Nutty Crunch Surprise": "Lot's O' Nuts",
+    "Wonka Bar - Fudge Mallows": "Lot's O' Nuts",
+    "Wonka Bar -Scrumdiddlyumptious": "Lot's O' Nuts",
+    "Wonka Bar - Milk Chocolate": "Wicked Choccy's",
+    "Wonka Bar - Triple Dazzle Caramel": "Wicked Choccy's",
+    "Laffy Taffy": "Sugar Shack",
+    "SweeTARTS": "Sugar Shack",
+    "Nerds": "Sugar Shack",
+    "Fun Dip": "Sugar Shack",
+    "Fizzy Lifting Drinks": "Sugar Shack",
+    "Everlasting Gobstopper": "Secret Factory",
+    "Hair Toffee": "The Other Factory",
+    "Lickable Wallpaper": "Secret Factory",
+    "Wonka Gum": "Secret Factory",
+    "Kazookles": "The Other Factory"
+}
+
+factory_coords = {
+    "Lot's O' Nuts": [32.881893, -111.768036],
+    "Wicked Choccy's": [32.076176, -81.088371],
+    "Sugar Shack": [48.11914, -96.18115],
+    "Secret Factory": [41.446333, -90.565487],
+    "The Other Factory": [35.1175, -89.971107]
+}
 
 df["Factory"] = df["Product Name"].map(factory_map)
+df["Factory"] = df["Factory"].fillna("Unknown Factory")
 
 # ------------------------------------------------
 # SIDEBAR (PRESERVED)
@@ -181,7 +201,6 @@ product_perf = (
     .reset_index()
 )
 
-# Safe Division Handling
 total_sales = product_perf["Total_Sales"].sum()
 total_profit = product_perf["Total_Profit"].sum()
 
@@ -193,12 +212,8 @@ if total_profit == 0:
 product_perf["Avg_Margin"] = product_perf["Total_Profit"] / product_perf["Total_Sales"]
 product_perf["Profit per Unit"] = product_perf["Total_Profit"] / product_perf["Total_Units"]
 product_perf["Cost per Unit"] = product_perf["Total_Cost"] / product_perf["Total_Units"]
-product_perf["Avg Selling Price"] = product_perf["Total_Sales"] / product_perf["Total_Units"]
 
-product_perf["Revenue Contribution %"] = product_perf["Total_Sales"] / total_sales * 100
-product_perf["Profit Contribution %"] = product_perf["Total_Profit"] / total_profit * 100
-
-# Improved Risk Classification (Quantile-Based)
+# Improved Risk Classification
 q25 = product_perf["Avg_Margin"].quantile(0.25)
 q50 = product_perf["Avg_Margin"].quantile(0.50)
 
@@ -212,69 +227,8 @@ def classify_margin(x):
 
 product_perf["Margin Risk Flag"] = product_perf["Avg_Margin"].apply(classify_margin)
 
-# Division Volatility
-division_volatility = (
-    filtered_df.groupby(["Division","Month"])["Gross Margin %"]
-    .mean()
-    .groupby("Division")
-    .std()
-    .reset_index(name="Margin Volatility")
-)
-
-division_contrib = product_perf.groupby("Division").agg(
-    Revenue=("Total_Sales","sum"),
-    Profit=("Total_Profit","sum")
-).reset_index()
-
-division_contrib["True Margin"] = division_contrib["Profit"] / division_contrib["Revenue"]
-division_contrib = division_contrib.merge(division_volatility,on="Division",how="left")
-
-# Pareto
-profit_pareto = product_perf.sort_values("Total_Profit",ascending=False)
-profit_pareto["Cumulative Profit %"] = profit_pareto["Total_Profit"].cumsum()/total_profit*100
-
-revenue_pareto = product_perf.sort_values("Total_Sales",ascending=False)
-revenue_pareto["Cumulative Revenue %"] = revenue_pareto["Total_Sales"].cumsum()/total_sales*100
-
-profit_80_count = (profit_pareto["Cumulative Profit %"]>=80).idxmax()+1
-revenue_80_count = (revenue_pareto["Cumulative Revenue %"]>=80).idxmax()+1
-
-dependency_risk = "High" if profit_80_count <= 3 else "Moderate" if profit_80_count <=5 else "Low"
-
-# Factory Performance
-factory_perf = product_perf.groupby("Factory").agg(
-    Revenue=("Total_Sales","sum"),
-    Profit=("Total_Profit","sum"),
-    Avg_Margin=("Avg_Margin","mean"),
-    Cost_per_Unit=("Cost per Unit","mean")
-).reset_index()
-
 # ------------------------------------------------
-# COST DIAGNOSTICS FIX (PRODUCT LEVEL)
-# ------------------------------------------------
-def cost_margin_page():
-    st.title("Cost & Margin Diagnostics")
-
-    fig1 = px.scatter(product_perf,
-                      x="Total_Cost",
-                      y="Total_Sales",
-                      color="Division",
-                      size="Total_Units",
-                      trendline="ols",
-                      template="plotly_dark")
-    st.plotly_chart(fig1, use_container_width=True)
-
-    fig2 = px.scatter(product_perf,
-                      x="Cost per Unit",
-                      y="Avg_Margin",
-                      color="Margin Risk Flag",
-                      size="Total_Sales",
-                      trendline="ols",
-                      template="plotly_dark")
-    st.plotly_chart(fig2, use_container_width=True)
-
-# ------------------------------------------------
-# FOOTER (FULLY PRESERVED)
+# FOOTER (PRESERVED)
 # ------------------------------------------------
 def add_footer():
     try:
@@ -297,11 +251,5 @@ def add_footer():
         st.markdown(footer_html, unsafe_allow_html=True)
     except:
         st.markdown("Footer Error")
-
-# ------------------------------------------------
-# ROUTING (PRESERVED)
-# ------------------------------------------------
-if page == "Cost & Margin Diagnostics":
-    cost_margin_page()
 
 add_footer()
